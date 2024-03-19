@@ -6,5 +6,5 @@ set(CMAKE_C_STANDARD 11)
 add_compile_options(-Wall -Werror -Wextra -g)
 include_directories(./inc)
 
-add_executable(ft_nmap src/ft_nmap.c
+add_executable(ft_nmap
         src/ft_nmap.c)

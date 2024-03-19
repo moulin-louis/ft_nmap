@@ -3,7 +3,9 @@
 //
 
 #include "ft_nmap.h"
+#include <stdio.h>
 
 int main(void) {
-  return 1;
+  printf("hello world\n");
+  return 0;
 }
