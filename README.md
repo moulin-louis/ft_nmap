@@ -1,2 +1,11 @@
 # ft_nmap
-Re-coding the nmap command will be the opportunity to deepen your knowledge of TCP/IP networks and thus understand advanced use of threads in real life.
+## Project by:
+- [lsuardi](https://github.com/2LeoCode)
+- [@moulin-louis](https://github.com/moulin-louis)
+## Description: 
+- The goal of this project is to make you recode a part of nmap and therefore discover a
+new very powerful library.
+- You will have to use the threads in order to reduce drastically the time spent to scan the
+chosen ports.
+## Note:
+- TBD
