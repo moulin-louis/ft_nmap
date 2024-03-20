@@ -2,6 +2,6 @@ services:
   ft_nmap:
     image: ft_nmap
     container_name: ft_nmap
-    build: ./Dockerfile
+    build: ./
     volumes:
       - .:/ft_nmap
