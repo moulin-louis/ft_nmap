@@ -3,5 +3,7 @@ services:
     image: ft_nmap
     container_name: ft_nmap
     build: ./
+    ports:
+      - "2222:22"
     volumes:
       - .:/ft_nmap

@@ -4,6 +4,28 @@
 
 #include "ft_nmap.h"
 
+uint16_t port = 22;
+
+void ft_hexdump(const void* data, const uint64_t nbytes, const uint64_t row) {
+  if (row == 0) {
+    for (size_t i = 0; i < nbytes; i++) {
+      printf("%02x ", ((uint8_t*)data)[i]);
+    }
+    printf("\n");
+    return;
+  }
+  for (size_t i = 0; i < nbytes; i += row) {
+    for (size_t j = i; j < i + row; j++) {
+      if (j == nbytes) {
+        break;
+      }
+      printf("%02x ", ((uint8_t*)data)[j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 struct in_addr get_interface_ip(const char* ifname) {
   struct ifaddrs* ifaddr;
   struct in_addr ipAddr = {0};
@@ -38,43 +60,15 @@ uint16_t checksum(uint16_t* buffer, int size) {
     cksum += *(uint8_t*)buffer;
 
   cksum = (cksum >> 16) + (cksum & 0xffff);
-  cksum += (cksum >> 16);
+  cksum += cksum >> 16;
   return ~cksum;
 }
-
-uint16_t tcp_checksum(void* vdata, size_t length, struct in_addr src_addr, struct in_addr dest_addr) {
-  // Create the pseudo header
-  TCP_PseudoHeader psh = {0};
-  psh.src_addr = src_addr.s_addr;
-  psh.dest_addr = dest_addr.s_addr;
-  psh.pholder = 0;
-  psh.protocol = IPPROTO_TCP;
-  psh.tcp_len = htons(length);
-
-  // Calculate the size for the pseudo header + TCP header
-  const size_t psize = sizeof(TCP_PseudoHeader) + length;
-  char* pseudogram = malloc(psize);
-  if (pseudogram == NULL)
-    return 0;
-
-  // Copy the pseudo header first
-  memcpy(pseudogram, (char*)&psh, sizeof(TCP_PseudoHeader));
-
-  // Then copy the TCP header (and data if any)
-  memcpy(pseudogram + sizeof(TCP_PseudoHeader), vdata, length);
-
-  // Calculate the checksum
-  uint16_t chcksm = checksum((uint16_t*)pseudogram, psize);
-  free(pseudogram);
-  return chcksm;
-}
-
 
 int main(int ac, char** av) {
   (void)ac;
   uint8_t packet[sizeof(struct tcphdr) + sizeof(TCP_PseudoHeader)] = {0};
 
-  struct tcphdr* tcphdr = (struct tcphdr*)&packet;
+  struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
   struct sockaddr_in dest = {0};
   const int sck = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   if (sck == -1) {
@@ -82,16 +76,17 @@ int main(int ac, char** av) {
     return 1;
   }
   setsockopt(sck, IPPROTO_IP, IP_HDRINCL, (uint64_t[]){1}, sizeof(uint64_t));
-  tcphdr->source = htons(49152); // Source port is this. Likely unused port
-  tcphdr->dest = htons(22); // Targeting port 22 (SSH)
-  tcphdr->seq = 1;
-  tcphdr->ack_seq = 1;
-  tcphdr->syn = 1;
-  tcphdr->window = 1;
+  tcp_hdr->source = htons(49152); // Source port is this. Likely unused port
+  tcp_hdr->dest = htons(port); // Targeting port  (SSH)
+  tcp_hdr->seq = 1;
+  tcp_hdr->syn = htons(42);
+  tcp_hdr->ack_seq = 0;
+  tcp_hdr->window = 1024;
+  tcp_hdr->doff = 6;
   dest.sin_family = AF_INET;
-  dest.sin_port = tcphdr->dest;
+  dest.sin_port = tcp_hdr->dest;
   dest.sin_addr.s_addr = inet_addr(av[1]);
-  tcphdr->check = tcp_checksum((uint16_t*)tcphdr, sizeof(tcphdr), get_interface_ip("eth0"), dest.sin_addr);
+  tcp_hdr->check = checksum((uint16_t*)tcp_hdr, sizeof(tcp_hdr));
 
   int64_t retval = sendto(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest, sizeof(dest));
   if (retval == -1) {
@@ -109,7 +104,35 @@ int main(int ac, char** av) {
     close(sck);
     return 1;
   }
+
   printf("%ld bytes recv\n", retval);
+  struct iphdr* ip_hdr = (void*)buff;
+  printf("full hexdump:\n");
+  ft_hexdump(buff, retval, 0);
+  printf("hexdump ip header:\n");
+  ft_hexdump(ip_hdr, sizeof(struct iphdr), 4);
+  if (ip_hdr->protocol == IPPROTO_TCP) {
+    printf("its a tcp packet, youhou !\n");
+  }
+  const struct tcphdr* tcp_headr_recv = (void*)buff + sizeof(struct iphdr);
+  printf("hexdump tcp header:\n");
+  ft_hexdump(tcp_headr_recv, sizeof(struct tcphdr), 4);
+  printf("\nURGENT = %d, ACK = %d, PUSH = %d, RESET = %d, SYN = %d, FIN = %d\n", tcp_headr_recv->urg, tcp_headr_recv->ack, tcp_headr_recv->psh, tcp_headr_recv->rst, tcp_headr_recv->syn, tcp_headr_recv->fin);
+  if (tcp_headr_recv->ack == 1 && tcp_headr_recv->syn == 1) {
+    printf("ACK recv, youhou !\n");
+    printf("syn seq = %u\n", ntohs(tcp_headr_recv->seq));
+    printf("RST sent\nPort %d is open\n", port);
+  }
+
+  // need to send back, tcp packet with RESET bit set
+  tcp_hdr->syn = 0;
+  tcp_hdr->rst = 1;
+  retval = sendto(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest, sizeof(dest));
+  if (retval == -1) {
+    perror("sendto");
+    close(sck);
+    return 1;
+  }
   close(sck);
   return 0;
 }
