@@ -75,7 +75,10 @@ int main(int ac, char** av) {
     perror("socket SOCK RAW");
     return 1;
   }
-  setsockopt(sck, IPPROTO_IP, IP_HDRINCL, (uint64_t[]){1}, sizeof(uint64_t));
+  if (setsockopt(sck, IPPROTO_IP, IP_HDRINCL, (uint64_t[]){1}, sizeof(uint64_t))) {
+    perror("setsockopt");
+    exit(1);
+  }
   tcp_hdr->source = htons(49152); // Source port is this. Likely unused port
   tcp_hdr->dest = htons(port); // Targeting port  (SSH)
   tcp_hdr->seq = 1;
