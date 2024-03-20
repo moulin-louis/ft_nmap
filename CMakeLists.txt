@@ -8,4 +8,7 @@ include_directories(./inc)
 add_link_options(-lpcap -lpthread)
 
 add_executable(ft_nmap
-        src/ft_nmap.c)
+        src/ft_nmap.c
+        src/syn_scan.c
+        inc/ft_nmap.h
+)
