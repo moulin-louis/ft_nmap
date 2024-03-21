@@ -28,6 +28,9 @@ void NMAP_printOptions(const NMAP_Options* options) {
 int main(int argc, char** argv) {
   NMAP_Options options = NMAP_parseArgs(argc, argv);
 
+  printf("GLOBAL OPTIONS\n");
+  NMAP_printOptions(&options);
+  printf("--------------\n");
   if (NMAP_spawnWorkers(&options) == NMAP_FAILURE)
     return 1;
   return 0;
