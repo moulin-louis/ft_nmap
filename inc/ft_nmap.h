@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <error.h>
 #include <ifaddrs.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -59,11 +60,11 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
-  OPEN = 1 << 0,
-  CLOSE = 1 << 1,
-  FILTERED = 1 << 2,
-  UNFILTERED = 1 << 3,
-  UNKOWN = 1 << 4,
+  OPEN = 1 << 0, // == 1
+  CLOSE = 1 << 1, // == 2
+  FILTERED = 1 << 2, // == 4
+  UNFILTERED = 1 << 3, // == 8
+  UNKOWN = 1 << 4, // == 16
 };
 
 struct s_nmap_options {

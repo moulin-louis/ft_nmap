@@ -17,7 +17,10 @@ uint64_t tcp_syn_init(const uint16_t nPorts, int32_t sockets[]) {
 }
 
 uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result) {
-  for (uint16_t port = 0; port < options->nPorts; ++port) {
+  printf("checking up to %d port\n", options->nPorts);
+  for (uint64_t idx = 0; idx < options->nPorts; ++idx) {
+    const uint16_t port = options->ports[idx];
+    const int32_t sck = sockets[idx];
     uint8_t packet[sizeof(struct tcphdr)] = {0};
     struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
     struct sockaddr_in dest = {0};
@@ -27,19 +30,20 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
     dest.sin_port = tcp_hdr->dest;
     dest.sin_addr.s_addr = options->ip;
     tcp_hdr->check = tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip("eth0"), dest.sin_addr);
-    int64_t retval = send_packet(sockets[port], packet, sizeof(packet), 0, (struct sockaddr*)&dest);
+    int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
     if (retval == -1)
       return 1;
+    usleep(5000);
     uint8_t buff[4096] = {0};
     struct sockaddr_in sender = {0};
-    retval = recv_packet(sockets[port], buff, 4096, 0, (struct sockaddr*)&sender);
+    retval = recv_packet(sck, buff, 4096, 0, (struct sockaddr*)&sender);
     if (retval == -1)
       return 1;
 
     const struct iphdr* ip_hdr = (void*)buff;
-    result[port] = tcp_syn_analysis(ip_hdr, buff + sizeof(struct iphdr));
+    result[idx] = tcp_syn_analysis(ip_hdr, buff + sizeof(struct iphdr));
     // need to send back, tcp packet with RESET bit set
-    retval = tcp_syn_cleanup(sockets[port], packet, sizeof(packet), 0, (void*)&dest);
+    retval = tcp_syn_cleanup(sck, packet, sizeof(packet), 0, (void*)&dest);
     if (retval == -1)
       return 1;
   }
@@ -47,6 +51,7 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
 }
 
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, const uint16_t port) {
+  printf("crafting payload for port %u\n", port);
   tcp_hdr->source = htons(49152); // Source port, Likely unused port
   tcp_hdr->dest = htons(port); // Target port
   tcp_hdr->seq = 0;
@@ -59,6 +64,7 @@ void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, const uint16_t port) {
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {
   if (ip_hdr->protocol == IPPROTO_TCP) {
     const struct tcphdr* tcp_hdr = ip_payload;
+    printf("hexdump tcp header recv:\n");
     if (tcp_hdr->ack == 1) {
       if (tcp_hdr->syn == 1) {
         printf("Open port here\n");
@@ -79,6 +85,7 @@ NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payl
       }
     }
   }
+  printf("protocol = %d\n", ip_hdr->protocol);
   printf("Error here\n");
   return UNKOWN;
 }

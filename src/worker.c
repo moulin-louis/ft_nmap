@@ -1,9 +1,8 @@
 #include <ft_nmap.h>
 
 static void* NMAP_workerMain(void* arg) {
+  printf("Launching one scan\n");
   NMAP_WorkerOptions* const options = arg;
-  options->nPorts = 1024;
-  printf("Launching the scan of %u ports\n", options->nPorts);
   int32_t sockets[options->nPorts];
   NMAP_PortStatus* result = NULL;
 
@@ -23,11 +22,12 @@ static void* NMAP_workerMain(void* arg) {
     default: {
   }
   }
+  for (uint64_t idx = 0; idx < options->nPorts; ++idx)
+    close(sockets[idx]);
   return result;
 }
 
 int NMAP_spawnWorkers(const NMAP_Options* options) {
-  printf("launching with %d thread\n", options->speedup);
   pthread_t workers[options->speedup];
   NMAP_WorkerOptions workerOptions[options->speedup];
   void* workerResults[options->speedup];
@@ -64,9 +64,10 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   }
   for (size_t i = 0; i < nThreads; ++i) {
     // do something with results
-    NMAP_PortStatus* result = workerResults[i];
-    printf("port 22 status = %s\n", result[22] == OPEN ? "open" : "close");
-    printf("port 80 status = %s\n", result[80] == OPEN ? "open" : "close");
+    const NMAP_PortStatus* result = workerResults[i];
+    for (uint64_t j = 0; j < options->nPorts; ++j) {
+      printf("port %d status = %s\n", options->ports[j], result[j] == OPEN ? "open" : "close");
+    }
     free(workerResults[i]);
   }
   return NMAP_SUCCESS;

@@ -26,7 +26,7 @@ void ft_hexdump(const void* data, const uint64_t nbytes, const uint64_t row) {
 
 struct in_addr get_interface_ip(const char* ifname) {
   struct ifaddrs* ifaddr;
-  const struct in_addr ipAddr = {0};
+  struct in_addr ipAddr = {0};
 
   if (getifaddrs(&ifaddr) == -1) {
     perror("getifaddrs");
@@ -39,8 +39,9 @@ struct in_addr get_interface_ip(const char* ifname) {
       continue;
     if (strcmp(ifa->ifa_name, ifname) == 0 && ifa->ifa_addr->sa_family == AF_INET) { // Check it is IP4
       // is a valid IP4 Address
+      ipAddr = ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
       freeifaddrs(ifaddr);
-      return ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+      return ipAddr;
     }
   }
 
