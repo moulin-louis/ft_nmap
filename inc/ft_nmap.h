@@ -37,8 +37,11 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
 
-// Utils
+NMAP_PortStatus tcp_syn_analysis(const struct tcphdr* tcp_hdr);
 
+int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
+
+// Utils
 void ft_hexdump(const void* data, uint64_t nbytes, uint64_t row);
 
 #endif // FT_NMAP_H

@@ -4,7 +4,7 @@
 
 #include "ft_nmap.h"
 
-uint16_t port = 80;
+uint16_t port = 22;
 
 struct in_addr get_interface_ip(const char* ifname) {
   struct ifaddrs* ifaddr;
@@ -59,20 +59,26 @@ int main(int ac, char** av) {
     return 1;
   }
 
-  struct iphdr* ip_hdr = (void*)buff;
+  const struct iphdr* ip_hdr = (void*)buff;
   if (ip_hdr->protocol == IPPROTO_TCP) {
   }
   const struct tcphdr* tcp_headr_recv = (void*)buff + sizeof(struct iphdr);
-  printf("hexdump tcp header:\n");
-  ft_hexdump(tcp_headr_recv, sizeof(struct tcphdr), 4);
-  printf("\nURGENT = %d, ACK = %d, PUSH = %d, RESET = %d, SYN = %d, FIN = %d\n", tcp_headr_recv->urg,
-         tcp_headr_recv->ack, tcp_headr_recv->psh, tcp_headr_recv->rst, tcp_headr_recv->syn, tcp_headr_recv->fin);
+  switch (tcp_syn_analysis(tcp_headr_recv)) {
+  case OPEN:
+    printf("Port %d is open\n", port);
+    break;
+  case CLOSE:
+    printf("Port %d is close\n", port);
+    break;
+  case FILTERED:
+    printf("Port %d is filtered\n", port);
+    break;
+  default: {
+  }
+  }
   // need to send back, tcp packet with RESET bit set
-  tcp_hdr->syn = 0;
-  tcp_hdr->rst = 1;
-  retval = sendto(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest, sizeof(dest));
+  retval = tcp_syn_cleanup(sck, packet, sizeof(packet), 0, (void*)&dest);
   if (retval == -1) {
-    perror("sendto");
     close(sck);
     return 1;
   }
