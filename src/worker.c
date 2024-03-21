@@ -1,99 +1,33 @@
 #include <ft_nmap.h>
 
-static struct in_addr get_interface_ip(const char* ifname) {
-  struct ifaddrs* ifaddr;
-  const struct in_addr ipAddr = {0};
-
-  if (getifaddrs(&ifaddr) == -1) {
-    perror("getifaddrs");
-    exit(EXIT_FAILURE);
-  }
-
-  // Walk through linked list, maintaining head pointer so we can free list later
-  for (const struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == NULL)
-      continue;
-    if (strcmp(ifa->ifa_name, ifname) == 0 && ifa->ifa_addr->sa_family == AF_INET) { // Check it is IP4
-      // is a valid IP4 Address
-      freeifaddrs(ifaddr);
-      return ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
-    }
-  }
-
-  freeifaddrs(ifaddr);
-  return ipAddr;
-}
-
 static void* NMAP_workerMain(void* arg) {
-  const NMAP_WorkerOptions* const options = arg;
-  int sockets[options->nPorts];
+  NMAP_WorkerOptions* const options = arg;
+  options->nPorts = 1024;
+  printf("Launching the scan of %u ports\n", options->nPorts);
+  int32_t sockets[options->nPorts];
+  NMAP_PortStatus* result = NULL;
 
-  (void)sockets;
-
-  const uint16_t port = 22;
-
-  uint8_t packet[sizeof(struct tcphdr)] = {0};
-
-  struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
-  struct sockaddr_in dest = {0};
-  const int sck = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-  if (sck == -1) {
-    perror("socket SOCK RAW");
+  memset(sockets, 0, options->nPorts * sizeof(int32_t));
+  result = calloc(options->nPorts, sizeof(NMAP_PortStatus));
+  if (result == NULL)
     return NULL;
-  }
-  tcp_syn_craft_payload(tcp_hdr, port);
-  dest.sin_family = AF_INET;
-  dest.sin_port = tcp_hdr->dest;
-  dest.sin_addr.s_addr = options->ip;
-  tcp_hdr->check = tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip("eth0"), dest.sin_addr);
-  int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-  uint8_t buff[4096] = {0};
-  struct sockaddr_in sender = {0};
-  retval = recv_packet(sck, buff, sizeof(buff), 0, (struct sockaddr*)&sender);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-
-  const struct iphdr* ip_hdr = (void*)buff;
-  if (ip_hdr->protocol == IPPROTO_TCP) {
-  }
-  switch (tcp_syn_analysis(NULL, buff + sizeof(struct iphdr))) {
-  case OPEN:
-    printf("Port %d is open\n", port);
+  switch (options->scan) {
+  case NMAP_SCAN_SYN: {
+    if (tcp_syn_init(options->nPorts, sockets))
+      return NULL;
+    if (tcp_syn_perform(options, sockets, result)) {
+      return NULL;
+    }
     break;
-  case CLOSE:
-    printf("Port %d is close\n", port);
-    break;
-  case FILTERED:
-    printf("Port %d is filtered\n", port);
-    break;
-  default: {
+  }
+    default: {
   }
   }
-  // need to send back, tcp packet with RESET bit set
-  retval = tcp_syn_cleanup(sck, packet, sizeof(packet), 0, (void*)&dest);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-  close(sck);
-
-  // need to return something allocated with malloc, or NULL, in case of failure
-  void* result = malloc(0);
-  if (!result) {
-    perror("malloc");
-    return NULL;
-  }
-
   return result;
 }
 
 int NMAP_spawnWorkers(const NMAP_Options* options) {
+  printf("launching with %d thread\n", options->speedup);
   pthread_t workers[options->speedup];
   NMAP_WorkerOptions workerOptions[options->speedup];
   void* workerResults[options->speedup];
@@ -130,6 +64,9 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   }
   for (size_t i = 0; i < nThreads; ++i) {
     // do something with results
+    NMAP_PortStatus* result = workerResults[i];
+    printf("port 22 status = %s\n", result[22] == OPEN ? "open" : "close");
+    printf("port 80 status = %s\n", result[80] == OPEN ? "open" : "close");
     free(workerResults[i]);
   }
   return NMAP_SUCCESS;

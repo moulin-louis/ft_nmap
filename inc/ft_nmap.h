@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -62,6 +63,7 @@ enum e_nmap_port_status {
   CLOSE = 1 << 1,
   FILTERED = 1 << 2,
   UNFILTERED = 1 << 3,
+  UNKOWN = 1 << 4,
 };
 
 struct s_nmap_options {
@@ -106,13 +108,15 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 // TCP SYN  Function
 
+uint64_t tcp_syn_init(uint16_t nPorts, int32_t sockets[]);
+
+uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result);
+
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
 
-NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const uint8_t* ip_packet);
+NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
 int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
-// Utils
-void ft_hexdump(const void* data, uint64_t nbytes, uint64_t row);
 
 #endif
