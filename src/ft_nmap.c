@@ -4,7 +4,7 @@
 
 #include <ft_nmap.h>
 
-static void NMAP_printOptions(const NMAP_Options* options) {
+void NMAP_printOptions(const NMAP_Options* options) {
   static char ipBuffer[INET_ADDRSTRLEN];
 
   getnameinfo((void*)(struct sockaddr_in[]){{.sin_family = AF_INET, .sin_addr.s_addr = options->ip}},
@@ -27,11 +27,11 @@ static void NMAP_printOptions(const NMAP_Options* options) {
 
 int main(int argc, char** argv) {
   (void)argc;
-  uint8_t packet[sizeof(struct tcphdr)] = {0};
+  // uint8_t packet[sizeof(struct tcphdr)] = {0};
 
   NMAP_Options options = NMAP_parseArgs(argc, argv);
 
-  if (NMAP_SpawnWorkers(&options) == NMAP_FAILURE)
+  if (NMAP_spawnWorkers(&options) == NMAP_FAILURE)
     return 1;
   return 0;
 }

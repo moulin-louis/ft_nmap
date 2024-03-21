@@ -34,7 +34,7 @@
 
 
 typedef struct s_nmap_options NMAP_Options;
-typedef struct s_tcp_pseudo_header TCP_PseudoHeader;
+// typedef struct s_tcp_pseudo_header TCP_PseudoHeader;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef enum e_nmap_scan_type NMAP_ScanType;
 typedef enum e_nmap_option_key NMAP_OptionKey;
@@ -117,7 +117,7 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
 
-NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const struct tcphdr* tcp_hdr);
+NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const uint8_t* ip_packet);
 
 int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 

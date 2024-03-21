@@ -49,21 +49,20 @@ static void* NMAP_workerMain(void* arg) {
   int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
   if (retval == -1) {
     close(sck);
-    return 1;
+    return (void*)1;
   }
   uint8_t buff[4096] = {0};
   struct sockaddr_in sender = {0};
   retval = recv_packet(sck, buff, sizeof(buff), 0, (struct sockaddr*)&sender);
   if (retval == -1) {
     close(sck);
-    return 1;
+    return (void *)1;
   }
 
   const struct iphdr* ip_hdr = (void*)buff;
   if (ip_hdr->protocol == IPPROTO_TCP) {
   }
-  const struct tcphdr* tcp_headr_recv = (void*)buff + sizeof(struct iphdr);
-  switch (tcp_syn_analysis(NULL, tcp_headr_recv)) {
+  switch (tcp_syn_analysis(NULL, buff + sizeof(struct iphdr))) {
   case OPEN:
     printf("Port %d is open\n", port);
     break;
@@ -85,13 +84,13 @@ static void* NMAP_workerMain(void* arg) {
   close(sck);
 
   // need to return something allocated with malloc, or NULL, in case of failure
-  void* retval = malloc(0);
-  if (!retval) {
+  void* result = malloc(0);
+  if (!result) {
     perror("malloc");
     return NULL;
   }
 
-  return retval;
+  return result;
 }
 
 int NMAP_spawnWorkers(const NMAP_Options* options) {
