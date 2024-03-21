@@ -43,4 +43,5 @@ NamespaceIndentation: All
 SpacesInAngles: false
 TabWidth: 2
 PointerAlignment: Left
-...
+IndentPPDirectives: AfterHash
+PPIndentWidth: 1
