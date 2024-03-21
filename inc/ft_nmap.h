@@ -34,7 +34,6 @@
 
 
 typedef struct s_nmap_options NMAP_Options;
-// typedef struct s_tcp_pseudo_header TCP_PseudoHeader;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef enum e_nmap_scan_type NMAP_ScanType;
 typedef enum e_nmap_option_key NMAP_OptionKey;
@@ -71,14 +70,6 @@ struct s_nmap_options {
   uint8_t speedup;
   uint16_t nPorts;
   uint16_t ports[UINT16_MAX];
-};
-
-struct s_tcp_pseudo_header {
-  uint32_t src_addr;
-  uint32_t dest_addr;
-  uint8_t pholder;
-  uint8_t protocol;
-  uint16_t tcp_len;
 };
 
 struct s_nmap_worker_options {

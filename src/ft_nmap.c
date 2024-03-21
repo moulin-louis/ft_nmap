@@ -26,9 +26,6 @@ void NMAP_printOptions(const NMAP_Options* options) {
 }
 
 int main(int argc, char** argv) {
-  (void)argc;
-  // uint8_t packet[sizeof(struct tcphdr)] = {0};
-
   NMAP_Options options = NMAP_parseArgs(argc, argv);
 
   if (NMAP_spawnWorkers(&options) == NMAP_FAILURE)

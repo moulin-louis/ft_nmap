@@ -17,16 +17,6 @@ void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, const uint16_t port) {
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const uint8_t* ip_payload) {
   (void)ip_hdr;
   (void)ip_payload;
-  // if (ip_hdr->protocol == IPPROTO_TCP ) {
-
-    // if (tcp_hdr->ack == 1 && tcp_hdr->syn == 1)
-      // return OPEN;
-    // if (tcp_hdr->ack == 1 && tcp_hdr->rst == 1)
-      // return CLOSE;
-  // }
-// }
-  // (void)ip_hdr;
-
   return FILTERED;
 }
 

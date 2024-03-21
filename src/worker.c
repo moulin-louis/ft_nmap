@@ -30,7 +30,7 @@ static void* NMAP_workerMain(void* arg) {
 
   (void)sockets;
 
-  uint16_t port = 22;
+  const uint16_t port = 22;
 
   uint8_t packet[sizeof(struct tcphdr)] = {0};
 
@@ -49,14 +49,14 @@ static void* NMAP_workerMain(void* arg) {
   int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
   if (retval == -1) {
     close(sck);
-    return (void*)1;
+    return NULL;
   }
   uint8_t buff[4096] = {0};
   struct sockaddr_in sender = {0};
   retval = recv_packet(sck, buff, sizeof(buff), 0, (struct sockaddr*)&sender);
   if (retval == -1) {
     close(sck);
-    return (void *)1;
+    return NULL;
   }
 
   const struct iphdr* ip_hdr = (void*)buff;
