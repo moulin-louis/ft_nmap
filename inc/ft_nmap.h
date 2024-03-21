@@ -35,6 +35,7 @@
 
 typedef struct s_nmap_options NMAP_Options;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
+typedef struct s_nmap_worker_data NMAP_WorkerData;
 typedef enum e_nmap_scan_type NMAP_ScanType;
 typedef enum e_nmap_option_key NMAP_OptionKey;
 typedef enum e_nmap_port_status NMAP_PortStatus;
@@ -77,6 +78,12 @@ struct s_nmap_worker_options {
   NMAP_ScanType scan;
   uint16_t nPorts;
   uint16_t ports[UINT16_MAX];
+};
+
+struct s_nmap_worker_data {
+  pthread_t thread;
+  NMAP_WorkerOptions options;
+  void* result;
 };
 
 // parser.c

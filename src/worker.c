@@ -1,5 +1,25 @@
 #include <ft_nmap.h>
 
+static void NMAP_printWorkerOptions(const NMAP_WorkerOptions* options) {
+  static char ipBuffer[INET_ADDRSTRLEN];
+
+  getnameinfo((void*)(struct sockaddr_in[]){{.sin_family = AF_INET, .sin_addr.s_addr = options->ip}},
+              sizeof(struct sockaddr_in), ipBuffer, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+
+  printf("{\n"
+         "  ip: \"%s\",\n"
+         "  scan: \"%s\",\n"
+         "  nPorts: %u,\n"
+         "  ports: [",
+         ipBuffer, NMAP_getScanName(options->scan), options->nPorts);
+  for (uint16_t i = 0; i < options->nPorts; i++) {
+    printf("%u", options->ports[i]);
+    if (i != options->nPorts - 1)
+      printf(", ");
+  }
+  puts("]\n}");
+}
+
 static struct in_addr get_interface_ip(const char* ifname) {
   struct ifaddrs* ifaddr;
   const struct in_addr ipAddr = {0};
@@ -29,6 +49,7 @@ static void* NMAP_workerMain(void* arg) {
   int sockets[options->nPorts];
 
   (void)sockets;
+  NMAP_printWorkerOptions(options);
 
   const uint16_t port = 22;
 
@@ -94,43 +115,65 @@ static void* NMAP_workerMain(void* arg) {
 }
 
 int NMAP_spawnWorkers(const NMAP_Options* options) {
-  pthread_t workers[options->speedup];
-  NMAP_WorkerOptions workerOptions[options->speedup];
-  void* workerResults[options->speedup];
+  NMAP_WorkerData* const workers = malloc(sizeof(NMAP_WorkerData) * options->speedup);
+
+  if (!workers) {
+    perror("malloc");
+    return NMAP_FAILURE;
+  }
+
   uint16_t maxPortsPerWorker = options->nPorts / options->speedup;
   uint8_t nThreads = 0;
   uint16_t portsLeft = options->nPorts;
+  uint16_t remainder = options->nPorts % options->speedup;
 
-  if (!maxPortsPerWorker)
-    maxPortsPerWorker = 1;
   for (uint8_t i = 0; portsLeft && i < options->speedup; ++i) {
     ++nThreads;
-    workerOptions[i].ip = options->ip;
-    workerOptions[i].scan = options->scan;
-    workerOptions[i].nPorts = maxPortsPerWorker;
+    workers[i].options.ip = options->ip;
+    workers[i].options.scan = options->scan;
+    workers[i].options.nPorts = maxPortsPerWorker;
+    if (remainder) {
+      workers[i].options.nPorts += 1;
+      --remainder;
+    }
     if (portsLeft < maxPortsPerWorker)
-      workerOptions[i].nPorts = portsLeft;
-    for (uint16_t j = 0; j < workerOptions[i].nPorts; ++j)
-      workerOptions[i].ports[j] = options->ports[workerOptions[i].nPorts - portsLeft--];
+      workers[i].options.nPorts = portsLeft;
+    for (uint16_t j = 0; j < workers[i].options.nPorts; ++j)
+      workers[i].options.ports[j] = options->ports[options->nPorts - portsLeft--];
   }
   for (uint8_t i = 0; i < nThreads; ++i)
-    if (pthread_create(&workers[i], NULL, NMAP_workerMain, (void*)&workerOptions[i])) {
+    if (pthread_create(&workers[i].thread, NULL, NMAP_workerMain, (void*)&workers[i].options)) {
       for (size_t j = 0; j < i; ++j)
-        pthread_cancel(workers[j]);
+        pthread_cancel(workers[j].thread);
       for (size_t j = 0; j < i; ++j)
-        pthread_join(workers[j], NULL);
+        pthread_join(workers[j].thread, NULL);
       perror("ft_nmap: failed to spawn a thread");
+      free(workers);
       return NMAP_FAILURE;
     }
-  for (size_t i = 0; i < nThreads; ++i) {
-    if (pthread_join(workers[i], &workerResults[i]))
+
+  bool threadError = false;
+
+  for (size_t i = 0; !threadError && i < nThreads; ++i) {
+    if (pthread_join(workers[i].thread, &workers[i].result)) {
+      threadError = true;
       perror("ft_nmap: failed to join a thread");
-    if (!workerResults[i])
+    }
+    else if (!workers[i].result) {
+      threadError = true;
       fputs("ft_nmap: an error occured in a worker thread\n", stderr);
+    }
+  }
+  if (threadError) {
+    for (size_t i = 0; i < nThreads; ++i)
+      free(workers[i].result);
+    free(workers);
+    return NMAP_FAILURE;
   }
   for (size_t i = 0; i < nThreads; ++i) {
     // do something with results
-    free(workerResults[i]);
+    free(workers[i].result);
   }
+  free(workers);
   return NMAP_SUCCESS;
 }
