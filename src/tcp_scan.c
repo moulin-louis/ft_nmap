@@ -43,4 +43,3 @@ uint16_t tcp_checksum(const void* vdata, const size_t length, const struct in_ad
   const uint16_t chcksm = checksum((uint16_t*)pseudogram, sizeof(TCP_PseudoHeader) + length);
   return chcksm;
 }
-

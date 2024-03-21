@@ -63,7 +63,7 @@ int main(int ac, char** av) {
   if (ip_hdr->protocol == IPPROTO_TCP) {
   }
   const struct tcphdr* tcp_headr_recv = (void*)buff + sizeof(struct iphdr);
-  switch (tcp_syn_analysis(tcp_headr_recv)) {
+  switch (tcp_syn_analysis(NULL, tcp_headr_recv)) {
   case OPEN:
     printf("Port %d is open\n", port);
     break;
