@@ -1,6 +1,6 @@
 FROM debian:latest
 
-RUN apt update && apt install -y nmap fish valgrind cmake build-essential clang curl git make libpcap-dev openssh-server tcpdump
+RUN apt update && apt install -y nmap fish valgrind cmake build-essential clang curl git make libpcap-dev openssh-server tcpdump rsync
 RUN mkdir -p /ft_nmap/src && mkdir -p /ft_nmap/inc
 
 RUN echo 'root:1234' | chpasswd

@@ -11,4 +11,7 @@ add_executable(ft_nmap
         src/ft_nmap.c
         src/syn_scan.c
         inc/ft_nmap.h
+        src/tcp_scan.c
+        src/utils.c
+        src/packet.c
 )
