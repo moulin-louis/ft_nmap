@@ -4,7 +4,7 @@
 
 #include "ft_nmap.h"
 
-uint16_t port = 22;
+uint16_t port = 80;
 
 struct in_addr get_interface_ip(const char* ifname) {
   struct ifaddrs* ifaddr;
@@ -62,8 +62,7 @@ int main(int ac, char** av) {
   const struct iphdr* ip_hdr = (void*)buff;
   if (ip_hdr->protocol == IPPROTO_TCP) {
   }
-  const struct tcphdr* tcp_headr_recv = (void*)buff + sizeof(struct iphdr);
-  switch (tcp_syn_analysis(NULL, tcp_headr_recv)) {
+  switch (tcp_syn_analysis(NULL, (void*)buff + sizeof(struct iphdr))) {
   case OPEN:
     printf("Port %d is open\n", port);
     break;
