@@ -5,22 +5,102 @@
 #ifndef FT_NMAP_H
 #define FT_NMAP_H
 
+// standard headers
+#include <argp.h>
 #include <arpa/inet.h>
+#include <error.h>
 #include <ifaddrs.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+// ----------------
 
-typedef enum {
+// local headers
+#include "utils.h"
+// -------------
+
+
+#define NMAP_SUCCESS 0
+#define NMAP_FAILURE 1
+
+
+typedef struct s_nmap_options NMAP_Options;
+typedef struct s_tcp_pseudo_header TCP_PseudoHeader;
+typedef struct s_nmap_worker_options NMAP_WorkerOptions;
+typedef enum e_nmap_scan_type NMAP_ScanType;
+typedef enum e_nmap_option_key NMAP_OptionKey;
+typedef enum e_nmap_port_status NMAP_PortStatus;
+
+enum e_nmap_scan_type {
+  NMAP_SCAN_INVALID = -1,
+  NMAP_SCAN_SYN,
+  NMAP_SCAN_NULL,
+  NMAP_SCAN_FIN,
+  NMAP_SCAN_XMAS,
+  NMAP_SCAN_ACK,
+  NMAP_SCAN_UDP,
+};
+
+enum e_nmap_option_key {
+  NMAP_KEY_IP = 'i',
+  NMAP_KEY_FILE = 'f',
+  NMAP_KEY_SCAN = 'S',
+  NMAP_KEY_SPEEDUP = 's',
+  NMAP_KEY_PORTS = 'p',
+};
+
+enum e_nmap_port_status {
   OPEN = 1 << 0,
   CLOSE = 1 << 1,
   FILTERED = 1 << 2,
   UNFILTERED = 1 << 3,
-} NMAP_PortStatus;
+};
+
+struct s_nmap_options {
+  in_addr_t ip;
+  NMAP_ScanType scan;
+  uint8_t speedup;
+  uint16_t nPorts;
+  uint16_t ports[UINT16_MAX];
+};
+
+struct s_tcp_pseudo_header {
+  uint32_t src_addr;
+  uint32_t dest_addr;
+  uint8_t pholder;
+  uint8_t protocol;
+  uint16_t tcp_len;
+};
+
+struct s_nmap_worker_options {
+  in_addr_t ip;
+  NMAP_ScanType scan;
+  uint16_t nPorts;
+  uint16_t ports[UINT16_MAX];
+};
+
+// parser.c
+NMAP_Options NMAP_parseArgs(int argc, char** argv);
+// --------
+
+// scan_types.c
+const char* NMAP_getScanName(NMAP_ScanType scan);
+NMAP_ScanType NMAP_getScanNumber(const char* name);
+// ------------
+
+// worker.c
+int NMAP_spawnWorkers(const NMAP_Options* options);
+// --------
+
 
 // Packet I/O
 
@@ -44,4 +124,4 @@ int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t 
 // Utils
 void ft_hexdump(const void* data, uint64_t nbytes, uint64_t row);
 
-#endif // FT_NMAP_H
+#endif
