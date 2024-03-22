@@ -14,13 +14,11 @@ static void* NMAP_workerMain(void* arg) {
   case NMAP_SCAN_SYN: {
     if (tcp_syn_init(options->nPorts, sockets))
       return NULL;
-    if (tcp_syn_perform(options, sockets, result)) {
+    if (tcp_syn_perform(options, sockets, result))
       return NULL;
-    }
     break;
   }
-    default: {
-  }
+  default: {}
   }
   for (uint64_t idx = 0; idx < options->nPorts; ++idx)
     close(sockets[idx]);
@@ -87,7 +85,9 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     // do something with results
     const NMAP_PortStatus* result = workers[i].result;
     for (uint64_t j = 0; j < options->nPorts; ++j) {
-      printf("port %d status = %s\n", options->ports[j], result[j] == OPEN ? "open" : "close");
+      if (result[j] != CLOSE) {
+        printf("port %d status = %s\n", options->ports[j], port_status_to_string(result[j]));
+      }
     }
     free(workers[i].result);
   }

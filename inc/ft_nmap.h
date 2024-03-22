@@ -17,6 +17,7 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -126,5 +127,6 @@ NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payl
 
 int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
+char* port_status_to_string(NMAP_PortStatus status);
 
 #endif

@@ -48,3 +48,19 @@ struct in_addr get_interface_ip(const char* ifname) {
   freeifaddrs(ifaddr);
   return ipAddr;
 }
+
+char* port_status_to_string(NMAP_PortStatus status) {
+  switch (status) {
+  case OPEN:
+    return "OPEN";
+  case CLOSE:
+    return "CLOSE";
+  case FILTERED:
+    return "FILTERED";
+  case UNFILTERED:
+    return "UNFILTERED";
+  case UNKOWN:
+    return "UNKNOW";
+  }
+  return "REALY REALY WEIRD STUFF IS HAPENING RIGHT NOW IN PORT STATUS TO STRING";
+}
