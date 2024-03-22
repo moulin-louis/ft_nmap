@@ -5,7 +5,6 @@ set(CMAKE_C_STANDARD 11)
 
 add_compile_options(-Wall -Werror -Wextra -g)
 include_directories(./inc)
-add_link_options(-lpcap -lpthread)
 
 add_executable(ft_nmap
         src/ft_nmap.c
@@ -18,3 +17,5 @@ add_executable(ft_nmap
         src/utils.c
         src/packet.c
 )
+
+target_link_libraries(ft_nmap pcap pthread)

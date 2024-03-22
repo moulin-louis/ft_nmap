@@ -2,7 +2,7 @@
 
 static void* NMAP_workerMain(void* arg) {
   printf("Launching one scan\n");
-  NMAP_WorkerOptions* const options = arg;
+  const NMAP_WorkerOptions* const options = arg;
   int32_t sockets[options->nPorts];
   NMAP_PortStatus* result = NULL;
 
@@ -10,15 +10,11 @@ static void* NMAP_workerMain(void* arg) {
   result = calloc(options->nPorts, sizeof(NMAP_PortStatus));
   if (result == NULL)
     return NULL;
-  switch (options->scan) {
-  case NMAP_SCAN_SYN: {
-    if (tcp_syn_init(options->nPorts, sockets))
+  if (options->scan & NMAP_SCAN_SYN || true) {
+   if (tcp_syn_init(options->nPorts, sockets))
       return NULL;
     if (tcp_syn_perform(options, sockets, result))
       return NULL;
-    break;
-  }
-  default: {}
   }
   for (uint64_t idx = 0; idx < options->nPorts; ++idx)
     close(sockets[idx]);

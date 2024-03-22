@@ -12,10 +12,12 @@
 #include <ifaddrs.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <netinet/ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
+#include <pcap.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
