@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(ft_nmap C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 
 add_compile_options(-Wall -Werror -Wextra -g)
 include_directories(./inc)
