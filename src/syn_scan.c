@@ -31,9 +31,7 @@ void handle_pcap(uint8_t* user, const struct pcap_pkthdr* pkt, const uint8_t* by
   }
   const struct iphdr* iphdr = (void*)bytes + sizeof(struct ether_header);
   const struct tcphdr* tcphdr = (void*)bytes + sizeof(struct ether_header) + sizeof(struct iphdr);
-  ft_hexdump(tcphdr, sizeof(*tcphdr), 0);
   if (iphdr->protocol == IPPROTO_TCP) {
-    printf("port src %d\n", ntohs(tcphdr->source));
     data->result[ntohs(tcphdr->source) - data->options->ports[0]] = tcp_syn_analysis(iphdr, tcphdr);
   }
 }
@@ -55,7 +53,6 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
     fprintf(stderr, "pcap_openlive: %s\n", errbuf);
     return 1;
   }
-  printf("handle opend !\n");
   char first_ip[256] = {0};
   memcpy(first_ip, inet_ntoa(get_interface_ip(devs->name)), sizeof(first_ip));
 
@@ -66,7 +63,6 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
     fprintf(stdout, "Cant parse filter %s\n", pcap_geterr(handle));
     return 1;
   }
-  printf("filter: [%s]\n", filter);
   if (pcap_setfilter(handle, &fp) == -1) {
     pcap_close(handle);
     fprintf(stderr, "Couldnt apply filter %s\n", pcap_geterr(handle));

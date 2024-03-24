@@ -78,7 +78,6 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     return NMAP_FAILURE;
   }
   for (size_t i = 0; i < nThreads; ++i) {
-    printf("analyzing result thread 1\n");
     // do something with results
     const NMAP_PortStatus* result = workers[i].result;
     for (uint64_t j = 0; j < options->nPorts; ++j) {
