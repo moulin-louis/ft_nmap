@@ -25,29 +25,24 @@ uint64_t tcp_syn_init(const uint16_t nPorts, int32_t sockets[]) {
 }
 
 void handle_pcap(uint8_t* user, const struct pcap_pkthdr* pkt, const uint8_t* bytes) {
-  (void)user;
-  (void)pkt;
-  (void)bytes;
-  pcap_data* data = (void*)user;
-  printf("hexdump packet received:\n");
-  ft_hexdump(bytes, pkt->len, 0);
+  const pcap_data* data = (void*)user;
   if (pkt->len < sizeof(struct iphdr) + sizeof(struct tcphdr)) {
     return;
   }
-  // struct ether_header* ether_header = (void*)bytes;
-  struct iphdr* iphdr = (void*)bytes + sizeof(struct ether_header);
-  struct tcphdr* tcphdr = (void*)bytes + sizeof(struct ether_header) + sizeof(struct iphdr);
-  ft_hexdump(iphdr, sizeof(*iphdr), 0);
+  const struct iphdr* iphdr = (void*)bytes + sizeof(struct ether_header);
+  const struct tcphdr* tcphdr = (void*)bytes + sizeof(struct ether_header) + sizeof(struct iphdr);
   ft_hexdump(tcphdr, sizeof(*tcphdr), 0);
-  if (iphdr->protocol == IPPROTO_TCP)
-    data->result[tcphdr->source] =  tcp_syn_analysis(iphdr, tcphdr);
+  if (iphdr->protocol == IPPROTO_TCP) {
+    printf("port src %d\n", ntohs(tcphdr->source));
+    data->result[ntohs(tcphdr->source) - data->options->ports[0]] = tcp_syn_analysis(iphdr, tcphdr);
+  }
 }
 
 int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result) {
   pcap_if_t* devs = NULL;
   pcap_t* handle = NULL;
-  char  errbuf[PCAP_ERRBUF_SIZE] = {0};
-  char  filter[4096] = {0};
+  char errbuf[PCAP_ERRBUF_SIZE] = {0};
+  char filter[4096] = {0};
   pcap_data data = {options, sockets, result};
   const bpf_u_int32 net = 0;
   struct bpf_program fp;
@@ -61,21 +56,32 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
     return 1;
   }
   printf("handle opend !\n");
-  snprintf(filter, 4096, "src host %s", inet_ntoa(*(struct in_addr*)&options->ip));
+  char first_ip[256] = {0};
+  memcpy(first_ip, inet_ntoa(get_interface_ip(devs->name)), sizeof(first_ip));
+
+  pcap_freealldevs(devs);
+  sprintf(filter, "dst host %s and src host %s", first_ip, inet_ntoa(*(struct in_addr*)&options->ip));
   if (pcap_compile(handle, &fp, filter, 0, net) == -1) {
-    fprintf(stderr, "Cant parse filter %s\n", pcap_geterr(handle));
+    pcap_close(handle);
+    fprintf(stdout, "Cant parse filter %s\n", pcap_geterr(handle));
     return 1;
   }
+  printf("filter: [%s]\n", filter);
   if (pcap_setfilter(handle, &fp) == -1) {
+    pcap_close(handle);
     fprintf(stderr, "Couldnt apply filter %s\n", pcap_geterr(handle));
     return 1;
   }
+  pcap_freecode(&fp);
+  fflush(NULL);
   pcap_loop(handle, options->nPorts, handle_pcap, (uint8_t*)&data);
   pcap_close(handle);
   return 0;
 }
 
 uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result) {
+  pcap_if_t* devs = NULL;
+  pcap_findalldevs(&devs, NULL);
   for (uint64_t idx = 0; idx < options->nPorts; ++idx) {
     const uint16_t port = options->ports[idx];
     const int32_t sck = sockets[idx];
@@ -86,11 +92,13 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
     dest.sin_family = AF_INET;
     dest.sin_port = tcp_hdr->dest;
     dest.sin_addr.s_addr = options->ip;
-    tcp_hdr->check = tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip("eth0"), dest.sin_addr);
+    tcp_hdr->check =
+      tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip(devs->name), dest.sin_addr);
     const int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
     if (retval == -1)
       return 1;
   }
+  pcap_freealldevs(devs);
   printf("All probes have been sent !\n");
   analysis_network(options, sockets, result);
   for (uint64_t idx = 0; idx < options->nPorts; ++idx) {

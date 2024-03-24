@@ -3,8 +3,9 @@ project(ft_nmap C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_compile_options(-Wall -Werror -Wextra -g)
+add_compile_options(-Wall -Werror -Wextra -gdwarf-3)
 include_directories(./inc)
+
 
 add_executable(ft_nmap
         src/ft_nmap.c
