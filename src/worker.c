@@ -47,10 +47,12 @@ static void* NMAP_workerMain(void* arg) {
   NMAP_printWorkerOptions(options);
 
   // Array<Array<int>>
-  Array* const sockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
+  Array* const newSockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
 
-  if (!sockets)
+  if (!newSockets)
     return NULL;
+
+  (void)newSockets;
 
   NMAP_PortStatus* result = NULL;
 
@@ -69,13 +71,13 @@ static void* NMAP_workerMain(void* arg) {
   // I added this pthread_cleanup_push call to free automatically the sockets in case
   // of failure, but now you need to call pthread_exit(NULL) instead of just returning
   // NULL, otherwise the cleanup handler won't be called
-  pthread_cleanup_push(cleanupThreadSockets, sockets);
+  pthread_cleanup_push(cleanupThreadSockets, newSockets);
 
   // Now we get the number of ports by looking at the size
   // of the ports array instead of using options->nPorts
   const size_t nPorts = array_size(options->ports);
 
-  // You will now need to use the array above instead
+  // You will now need to use the newSockets Array above instead
   int32_t sockets[nPorts];
 
   memset(sockets, 0, nPorts * sizeof(int32_t));
@@ -91,11 +93,7 @@ static void* NMAP_workerMain(void* arg) {
   for (uint64_t idx = 0; idx < nPorts; ++idx)
     close(sockets[idx]);
 
-  if (!sockets)
-    return NULL;
-
-  (void)sockets;
-
+  pthread_cleanup_pop(1);
   return result;
 }
 
@@ -213,23 +211,19 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
 
   if (threadError)
     return NMAP_FAILURE;
-<<<<<<< HEAD
-}
-for (size_t i = 0; i < nThreads; ++i) {
-  // do something with results
-  const NMAP_PortStatus* result = workers[i].result;
-  for (uint64_t j = 0; j < options->nPorts; ++j) {
-    if (result[j] != CLOSE) {
-      printf("port %d status = %s\n", options->ports[j], port_status_to_string(result[j]));
+
+  // do something with result
+  for (size_t i = 0; i < nThreads; ++i) {
+    const NMAP_WorkerData* const workersData = array_cData(workers);
+    const NMAP_PortStatus* result = workersData[i].result;
+    const uint16_t* const portsData = array_cData(workersData[i].options.ports);
+
+    for (uint64_t j = 0; j < array_size(workersData[i].options.ports); ++j) {
+      if (result[j] != CLOSE) {
+        printf("port %d status = %s\n", portsData[j], port_status_to_string(result[j]));
+      }
     }
   }
-  free(workers[i].result);
-}
-free(workers);
-=======
 
-  // do something with results
-
->>>>>>> lsuardi
-return NMAP_SUCCESS;
+  return NMAP_SUCCESS;
 }

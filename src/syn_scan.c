@@ -26,17 +26,21 @@ uint64_t tcp_syn_init(const uint16_t nPorts, int32_t sockets[]) {
 
 void handle_pcap(uint8_t* user, const struct pcap_pkthdr* pkt, const uint8_t* bytes) {
   const pcap_data* data = (void*)user;
+  const uint16_t* const portsData = array_cData(data->options->ports);
+
   if (pkt->len < sizeof(struct iphdr) + sizeof(struct tcphdr)) {
     return;
   }
   const struct iphdr* iphdr = (void*)bytes + sizeof(struct ether_header);
   const struct tcphdr* tcphdr = (void*)bytes + sizeof(struct ether_header) + sizeof(struct iphdr);
   if (iphdr->protocol == IPPROTO_TCP) {
-    data->result[ntohs(tcphdr->source) - data->options->ports[0]] = tcp_syn_analysis(iphdr, tcphdr);
+    data->result[ntohs(tcphdr->source) - portsData[0]] = tcp_syn_analysis(iphdr, tcphdr);
   }
 }
 
 int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result) {
+  const in_addr_t* ipsData = array_cData(options->ips);
+
   pcap_if_t* devs = NULL;
   pcap_t* handle = NULL;
   char errbuf[PCAP_ERRBUF_SIZE] = {0};
@@ -57,7 +61,7 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
   memcpy(first_ip, inet_ntoa(get_interface_ip(devs->name)), sizeof(first_ip));
 
   pcap_freealldevs(devs);
-  sprintf(filter, "dst host %s and src host %s", first_ip, inet_ntoa(*(struct in_addr*)&options->ip));
+  sprintf(filter, "dst host %s and src host %s", first_ip, inet_ntoa(*(struct in_addr*)&ipsData[0]));
   if (pcap_compile(handle, &fp, filter, 0, net) == -1) {
     pcap_close(handle);
     fprintf(stdout, "Cant parse filter %s\n", pcap_geterr(handle));
@@ -70,7 +74,7 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
   }
   pcap_freecode(&fp);
   fflush(NULL);
-  pcap_loop(handle, options->nPorts, handle_pcap, (uint8_t*)&data);
+  pcap_loop(handle, array_size(options->ports), handle_pcap, (uint8_t*)&data);
   pcap_close(handle);
   return 0;
 }
@@ -82,7 +86,7 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
   const in_addr_t* const ipsData = array_cData(options->ips);
 
   for (uint64_t idx = 0; idx < array_size(options->ports); ++idx) {
-    const uint16_t const port = portsData[idx];
+    const uint16_t port = portsData[idx];
     const int32_t sck = sockets[idx];
     uint8_t packet[sizeof(struct tcphdr)] = {0};
     struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
