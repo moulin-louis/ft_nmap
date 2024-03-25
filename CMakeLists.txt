@@ -2,19 +2,22 @@ cmake_minimum_required(VERSION 3.22)
 project(ft_nmap C)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_COMPILER gcc)
 
-add_compile_options(-Wall -Werror -Wextra -g)
+add_compile_options(-Wall -Werror -Wextra -g -I${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata/inc)
 include_directories(./inc)
-add_link_options(-lpcap -lpthread)
 
-add_executable(ft_nmap
-        src/ft_nmap.c
-        src/syn_scan.c
-        src/parser.c
-        src/worker.c
-        src/scan_types.c
-        inc/ft_nmap.h
-        src/tcp_scan.c
-        src/utils.c
-        src/packet.c
+add_custom_target(
+        libdata ALL
+        COMMAND if [ "${CMAKE_BUILD_TYPE}" = "debug" ]\; then make -C ${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata debug\; else make -C ${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata\; fi
 )
+
+aux_source_directory(src SRC)
+add_executable(ft_nmap
+        ${SRC}
+)
+
+target_link_libraries(ft_nmap
+        -lpcap -lpthread -lm -L${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata -ldata
+)
+add_dependencies(ft_nmap libdata)

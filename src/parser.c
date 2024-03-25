@@ -14,21 +14,38 @@ static in_addr_t dnsLookup(const char* name) {
   return ip;
 }
 
+static int setUint16ToIndex(Array* arr, size_t i, void* value, void* param) {
+  (void)arr, (void)i, (void)param;
+  *(uint16_t*)value = i;
+  return 0;
+}
+
 static error_t parseOpt(int key, char* arg, struct argp_state* state) {
   static bool duplicatePort = false;
+  static bool duplicateIp = false;
   NMAP_Options* const input = state->input;
+  const char* tok;
+  char* cursor = arg;
   char* endptr;
+  in_addr_t ip;
 
   switch (key) {
   case NMAP_KEY_IP:
-    if ((input->ip = dnsLookup(arg)) == INADDR_NONE)
-      argp_failure(state, 1, errno, "Failed to resolve hostname '%s'", arg);
-    break;
-
-  case NMAP_KEY_SCAN:
-    input->scan = NMAP_getScanNumber(arg);
-    if (input->scan == NMAP_SCAN_INVALID)
-      argp_error(state, "Invalid scan type '%s'", arg);
+    while ((tok = strsep(&cursor, ","))) {
+      if (!*tok) {
+        if (cursor)
+          cursor[-1] = ',';
+        argp_error(state, "Invalid argument for --ip: '%s'", arg);
+      }
+      if ((ip = dnsLookup(tok)) == INADDR_NONE)
+        argp_failure(state, 1, errno, "Failed to resolve hostname '%s'", tok);
+      if (cursor)
+        cursor[-1] = ',';
+      if (array_any(input->ips, &ip))
+        duplicateIp = true;
+      else if (array_pushBack(input->ips, &ip, 1))
+        return NMAP_FAILURE;
+    }
     break;
 
   case NMAP_KEY_FILE:
@@ -39,7 +56,27 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     if (!file)
       argp_failure(state, 1, errno, "Failed to open file '%s'", arg);
 
-    const ssize_t readRet = getline(&name, &nameLength, file);
+    ssize_t readRet;
+
+    while ((readRet = getline(&name, &nameLength, file)) != -1) {
+      if (!readRet)
+        continue;
+      if (name[readRet - 1] == '\n')
+        name[readRet - 1] = 0;
+      if ((ip = dnsLookup(name)) == INADDR_NONE) {
+        fprintf(stderr, "ft_nmap: Failed to resolve hostname '%s'\n", name);
+        free(name);
+        return NMAP_FAILURE;
+      }
+      if (array_any(input->ips, &ip))
+        duplicateIp = true;
+      else if (array_pushBack(input->ips, &ip, 1)) {
+        free(name);
+        return NMAP_FAILURE;
+      }
+    }
+    if (errno == ENOMEM)
+      argp_failure(state, 1, errno, "Failed to read from file '%s'", arg);
 
     fclose(file);
     if (readRet == -1) {
@@ -48,13 +85,29 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     }
     if (readRet && name[readRet - 1] == '\n')
       name[readRet - 1] = '\0';
-    input->ip = dnsLookup(name);
-    if (input->ip == INADDR_NONE) {
+    if ((ip = dnsLookup(name)) == INADDR_NONE) {
       fprintf(stderr, "ft_nmap: Failed to resolve hostname '%s'\n", name);
       free(name);
       return NMAP_FAILURE;
     }
+    if (array_pushBack(input->ips, &ip, 1)) {
+      free(name);
+      return NMAP_FAILURE;
+    }
     free(name);
+    break;
+
+  case NMAP_KEY_SCAN:
+    uint32_t scan;
+
+    while ((tok = strsep(&cursor, ","))) {
+      scan = NMAP_getScanNumber(tok);
+      if (cursor)
+        cursor[-1] = ',';
+      if (scan == NMAP_SCAN_NONE)
+        argp_error(state, "Invalid argument for --scan: '%s'", arg);
+      input->scan |= scan;
+    }
     break;
 
   case NMAP_KEY_SPEEDUP:
@@ -78,37 +131,43 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
         unsigned long end = strtoul(endptr + 1, &endptr, 0);
         if (errno == ERANGE || end < begin || end > UINT16_MAX || (*endptr && *endptr != ','))
           argp_error(state, "Invalid argument for --ports: '%s'", arg);
-        while (begin <= end) {
-          bool duplicate = false;
-          for (size_t i = 0; i < input->nPorts; i++) {
-            if (input->ports[i] == begin) {
-              duplicate = duplicatePort = true;
-              break;
-            }
-          }
-          if (!duplicate)
-            input->ports[input->nPorts++] = begin;
-          ++begin;
-        }
+        for (uint16_t port = begin; port <= end; ++port)
+          if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
+            return NMAP_FAILURE;
       }
-      else if (*endptr && *endptr != ',')
-        argp_error(state, "Invalid argument for --ports: '%s'", arg);
+      else if (*endptr) {
+        if (*endptr != ',')
+          argp_error(state, "Invalid argument for --ports: '%s'", arg);
+        const uint16_t port = begin;
+        if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
+          return NMAP_FAILURE;
+      }
       cursor = endptr + !!*endptr;
     }
     break;
 
   case ARGP_KEY_END:
-    if (input->ip == INADDR_NONE)
+    if (input->scan == NMAP_SCAN_NONE)
+      input->scan = NMAP_SCAN_ALL;
+    if (array_empty(input->ips))
       argp_error(state, "No destination found, either --file or --ip must be provided");
+    if (duplicateIp)
+      fputs("WARNING: Duplicate destination address(es) specified.  Are you alert enough to be using Nmap?  Have some "
+            "coffee "
+            "or Jolt(tm).\n",
+            stderr);
     if (duplicatePort)
       fputs("WARNING: Duplicate port number(s) specified.  Are you alert enough to be using Nmap?  Have some coffee "
             "or Jolt(tm).\n",
             stderr);
-    if (!input->nPorts) {
-      input->nPorts = UINT16_MAX;
-      for (uint16_t i = 0; i < UINT16_MAX; i++)
-        input->ports[i] = i;
+    duplicateIp = duplicatePort = false;
+    if (array_empty(input->ports)) {
+      if (array_resize(input->ports, UINT16_MAX + 1))
+        return NMAP_FAILURE;
+      array_forEach(input->ports, setUint16ToIndex, NULL);
     }
+    array_shrink(input->ips);
+    array_shrink(input->ports);
     break;
 
   default:
@@ -117,8 +176,29 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
   return NMAP_SUCCESS;
 }
 
-NMAP_Options NMAP_parseArgs(int argc, char** argv) {
-  NMAP_Options options = {.ip = INADDR_NONE, .scan = NMAP_SCAN_SYN, .speedup = 1};
+static void NMAP_destroyOptions(int status, void* arg) {
+  (void)status;
+  NMAP_Options* options = arg;
+
+  array_destroy(options->ips);
+  array_destroy(options->ports);
+  free(options);
+}
+
+NMAP_Options* NMAP_parseArgs(int argc, char** argv) {
+  NMAP_Options* options = malloc(sizeof(NMAP_Options));
+  if (!options)
+    return NULL;
+
+  memset(options, 0, sizeof(NMAP_Options));
+  options->speedup = 1;
+  options->ips = array(sizeof(in_addr_t), 1, 0, NULL, NULL);
+  options->ports = array(sizeof(uint16_t), UINT16_MAX + 1, 0, NULL, NULL);
+
+  on_exit(NMAP_destroyOptions, options);
+  if (!options->ips || !options->ports)
+    return NULL;
+
   static const struct argp_option argOptions[] = {
     {.name = "ip", .key = NMAP_KEY_IP, .arg = "IP_OR_DOMAIN_NAME", .doc = "The IP address to scan"},
     {.name = "file", .key = NMAP_KEY_FILE, .arg = "PATH", .doc = "The file containing the IP address to scan"},
@@ -129,7 +209,7 @@ NMAP_Options NMAP_parseArgs(int argc, char** argv) {
   };
   static const struct argp argp = {.options = argOptions, .parser = parseOpt, .doc = "Nmap, but worse."};
 
-  if (argp_parse(&argp, argc, argv, ARGP_NO_ARGS, NULL, &options) == NMAP_FAILURE)
-    exit(EXIT_FAILURE);
+  if (argp_parse(&argp, argc, argv, ARGP_NO_ARGS, NULL, options) == NMAP_FAILURE)
+    return NULL;
   return options;
 }

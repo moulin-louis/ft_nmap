@@ -1,19 +1,17 @@
 #include <ft_nmap.h>
 
-static const char* const g_scanTypes[] = {
-  [NMAP_SCAN_SYN] = "SYN",   [NMAP_SCAN_NULL] = "NULL", [NMAP_SCAN_FIN] = "FIN",
-  [NMAP_SCAN_XMAS] = "XMAS", [NMAP_SCAN_ACK] = "ACK",   [NMAP_SCAN_UDP] = "UDP",
-};
-
-const char* NMAP_getScanName(NMAP_ScanType scan) {
-  if ((size_t)scan >= COUNTOF(g_scanTypes))
-    return NULL;
-  return g_scanTypes[scan];
-}
-
-NMAP_ScanType NMAP_getScanNumber(const char* name) {
-  for (size_t i = 0; i < COUNTOF(g_scanTypes); i++)
-    if (g_scanTypes[i] && !strcmp(g_scanTypes[i], name))
-      return i;
-  return NMAP_SCAN_INVALID;
+uint32_t NMAP_getScanNumber(const char* name) {
+  if (!strcmp(name, "SYN"))
+    return NMAP_SCAN_SYN;
+  if (!strcmp(name, "NULL"))
+    return NMAP_SCAN_NULL;
+  if (!strcmp(name, "FIN"))
+    return NMAP_SCAN_FIN;
+  if (!strcmp(name, "XMAS"))
+    return NMAP_SCAN_XMAS;
+  if (!strcmp(name, "ACK"))
+    return NMAP_SCAN_ACK;
+  if (!strcmp(name, "UDP"))
+    return NMAP_SCAN_UDP;
+  return NMAP_SCAN_NONE;
 }

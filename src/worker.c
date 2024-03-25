@@ -1,179 +1,180 @@
 #include <ft_nmap.h>
 
-static void NMAP_printWorkerOptions(const NMAP_WorkerOptions* options) {
-  static char ipBuffer[INET_ADDRSTRLEN];
+static void cleanupThreadSockets(void* sockets) { array_destroy(sockets); }
 
-  getnameinfo((void*)(struct sockaddr_in[]){{.sin_family = AF_INET, .sin_addr.s_addr = options->ip}},
-              sizeof(struct sockaddr_in), ipBuffer, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+static void socketFdDestructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  int* const scks = data;
 
-  printf("{\n"
-         "  ip: \"%s\",\n"
-         "  scan: \"%s\",\n"
-         "  nPorts: %u,\n"
-         "  ports: [",
-         ipBuffer, NMAP_getScanName(options->scan), options->nPorts);
-  for (uint16_t i = 0; i < options->nPorts; i++) {
-    printf("%u", options->ports[i]);
-    if (i != options->nPorts - 1)
-      printf(", ");
-  }
-  puts("]\n}");
+  for (size_t i = 0; i < n; ++i)
+    if (scks[i] > 0)
+      close(scks[i]);
 }
 
-static struct in_addr get_interface_ip(const char* ifname) {
-  struct ifaddrs* ifaddr;
-  const struct in_addr ipAddr = {0};
+static int socketsConstructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  Array** const sockets = data;
 
-  if (getifaddrs(&ifaddr) == -1) {
-    perror("getifaddrs");
-    exit(EXIT_FAILURE);
+  const ArrayFactory socketElementFactory = {
+    .destructor = socketFdDestructor,
+  };
+
+  for (size_t i = 0; i < n; ++i) {
+    sockets[i] = array(sizeof(int), 0, 0, NULL, &socketElementFactory);
+
+    if (!sockets[i])
+      return 1;
   }
+  return 0;
+}
 
-  // Walk through linked list, maintaining head pointer so we can free list later
-  for (const struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == NULL)
-      continue;
-    if (strcmp(ifa->ifa_name, ifname) == 0 && ifa->ifa_addr->sa_family == AF_INET) { // Check it is IP4
-      // is a valid IP4 Address
-      freeifaddrs(ifaddr);
-      return ((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
-    }
-  }
+static void socketsDestructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  Array** const sockets = data;
 
-  freeifaddrs(ifaddr);
-  return ipAddr;
+  for (size_t i = 0; i < n; ++i)
+    array_destroy(sockets[i]);
 }
 
 static void* NMAP_workerMain(void* arg) {
   const NMAP_WorkerOptions* const options = arg;
-  int sockets[options->nPorts];
+  const ArrayFactory socketsFactory = {
+    .constructor = socketsConstructor,
+    .destructor = socketsDestructor,
+  };
+  Array* const sockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
+  void* result;
+
+  if (!sockets)
+    return NULL;
 
   (void)sockets;
+  pthread_cleanup_push(cleanupThreadSockets, sockets);
+
   NMAP_printWorkerOptions(options);
 
-  const uint16_t port = 22;
-
-  uint8_t packet[sizeof(struct tcphdr)] = {0};
-
-  struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
-  struct sockaddr_in dest = {0};
-  const int sck = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-  if (sck == -1) {
-    perror("socket SOCK RAW");
-    return NULL;
-  }
-  tcp_syn_craft_payload(tcp_hdr, port);
-  dest.sin_family = AF_INET;
-  dest.sin_port = tcp_hdr->dest;
-  dest.sin_addr.s_addr = options->ip;
-  tcp_hdr->check = tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip("eth0"), dest.sin_addr);
-  int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-  uint8_t buff[4096] = {0};
-  struct sockaddr_in sender = {0};
-  retval = recv_packet(sck, buff, sizeof(buff), 0, (struct sockaddr*)&sender);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-
-  const struct iphdr* ip_hdr = (void*)buff;
-  if (ip_hdr->protocol == IPPROTO_TCP) {
-  }
-  switch (tcp_syn_analysis(NULL, buff + sizeof(struct iphdr))) {
-  case OPEN:
-    printf("Port %d is open\n", port);
-    break;
-  case CLOSE:
-    printf("Port %d is close\n", port);
-    break;
-  case FILTERED:
-    printf("Port %d is filtered\n", port);
-    break;
-  default: {
-  }
-  }
-  // need to send back, tcp packet with RESET bit set
-  retval = tcp_syn_cleanup(sck, packet, sizeof(packet), 0, (void*)&dest);
-  if (retval == -1) {
-    close(sck);
-    return NULL;
-  }
-  close(sck);
-
-  // need to return something allocated with malloc, or NULL, in case of failure
-  void* result = malloc(0);
-  if (!result) {
-    perror("malloc");
-    return NULL;
-  }
-
+  if (!(result = malloc(0))) // allocate result with malloc
+    pthread_exit(NULL);
+  pthread_cleanup_pop(1);
   return result;
 }
 
+static void workerDataDestructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  NMAP_WorkerData* const workers = data;
+  for (size_t i = 0; i < n; ++i) {
+    array_destroy(workers[i].options.ports);
+    free(workers[i].result);
+  }
+}
+
+static void destroyWorkers(int status, void* arg) {
+  (void)status;
+  array_destroy(arg);
+}
+
+typedef struct s_worker_setup_param {
+  const uint16_t minPortsPerWorker;
+  const uint16_t scan;
+  uint16_t remainder;
+  uint16_t portsLeft;
+  const Array* const ips;
+  const Array* const ports;
+} WorkerSetupParam;
+
+static int setupWorkerOptions(Array* arr, size_t i, void* value, void* param) {
+  (void)arr, (void)i;
+  WorkerSetupParam* const setup = param;
+  NMAP_WorkerData* const worker = value;
+  const ptrdiff_t from = -setup->portsLeft;
+  const ptrdiff_t to = array_size(setup->ports) - setup->portsLeft + setup->minPortsPerWorker + !!setup->remainder;
+
+  worker->options.scan = setup->scan;
+  worker->options.ips = setup->ips;
+  worker->options.ports = array_sliced(setup->ports, from, to);
+  if (!worker->options.ports) {
+    perror("ft_nmap");
+    return 1;
+  }
+  setup->portsLeft -= array_size(worker->options.ports);
+  if (setup->remainder)
+    --setup->remainder;
+  return 0;
+}
+
+static int cancelWorkerThread(const Array* arr, size_t i, const void* value, void* param) {
+  (void)arr, (void)i, (void)param;
+  const NMAP_WorkerData* const worker = value;
+
+  pthread_cancel(worker->thread);
+  return 0;
+}
+
+static int joinWorkerThread(Array* arr, size_t i, void* value, void* param) {
+  (void)arr, (void)i;
+
+  bool* const threadError = param;
+  NMAP_WorkerData* const worker = value;
+
+  if (pthread_join(worker->thread, &worker->result)) {
+    if (threadError)
+      *threadError = true;
+    perror("ft_nmap: failed to join a thread");
+  }
+  else if (!worker->result) {
+    if (threadError)
+      *threadError = true;
+    fputs("ft_nmap: an error occured in a worker thread\n", stderr);
+  }
+  return 0;
+}
+
+int spawnWorkerThread(Array* arr, size_t i, void* value, void* param) {
+  (void)param;
+  NMAP_WorkerData* const worker = value;
+
+  if (pthread_create(&worker->thread, NULL, NMAP_workerMain, &worker->options)) {
+    array_cForEachWithin(arr, 0, i, cancelWorkerThread, NULL);
+    array_forEachWithin(arr, 0, i, joinWorkerThread, NULL);
+    perror("ft_nmap: failed to spawn a thread");
+    return 1;
+  }
+  return 0;
+}
+
 int NMAP_spawnWorkers(const NMAP_Options* options) {
-  NMAP_WorkerData* const workers = malloc(sizeof(NMAP_WorkerData) * options->speedup);
+  const size_t nPorts = array_size(options->ports);
+  const uint16_t nThreads = options->speedup <= nPorts ? options->speedup : nPorts;
+  WorkerSetupParam setup = {
+    .minPortsPerWorker = nPorts / nThreads,
+    .scan = options->scan,
+    .remainder = nPorts % nThreads,
+    .portsLeft = nPorts,
+    .ips = options->ips,
+    .ports = options->ports,
+  };
+  ArrayFactory workersFactory = {
+    .destructor = workerDataDestructor,
+  };
+  Array* const workers = array(sizeof(NMAP_WorkerData), 0, nThreads, NULL, &workersFactory);
 
   if (!workers) {
     perror("malloc");
     return NMAP_FAILURE;
   }
+  on_exit(destroyWorkers, workers);
 
-  uint16_t maxPortsPerWorker = options->nPorts / options->speedup;
-  uint8_t nThreads = 0;
-  uint16_t portsLeft = options->nPorts;
-  uint16_t remainder = options->nPorts % options->speedup;
-
-  for (uint8_t i = 0; portsLeft && i < options->speedup; ++i) {
-    ++nThreads;
-    workers[i].options.ip = options->ip;
-    workers[i].options.scan = options->scan;
-    workers[i].options.nPorts = maxPortsPerWorker;
-    if (remainder) {
-      workers[i].options.nPorts += 1;
-      --remainder;
-    }
-    if (portsLeft < maxPortsPerWorker)
-      workers[i].options.nPorts = portsLeft;
-    for (uint16_t j = 0; j < workers[i].options.nPorts; ++j)
-      workers[i].options.ports[j] = options->ports[options->nPorts - portsLeft--];
-  }
-  for (uint8_t i = 0; i < nThreads; ++i)
-    if (pthread_create(&workers[i].thread, NULL, NMAP_workerMain, (void*)&workers[i].options)) {
-      for (size_t j = 0; j < i; ++j)
-        pthread_cancel(workers[j].thread);
-      for (size_t j = 0; j < i; ++j)
-        pthread_join(workers[j].thread, NULL);
-      perror("ft_nmap: failed to spawn a thread");
-      free(workers);
-      return NMAP_FAILURE;
-    }
+  if (array_forEach(workers, setupWorkerOptions, &setup) || array_forEach(workers, spawnWorkerThread, NULL))
+    return NMAP_FAILURE;
 
   bool threadError = false;
 
-  for (size_t i = 0; !threadError && i < nThreads; ++i) {
-    if (pthread_join(workers[i].thread, &workers[i].result)) {
-      threadError = true;
-      perror("ft_nmap: failed to join a thread");
-    }
-    else if (!workers[i].result) {
-      threadError = true;
-      fputs("ft_nmap: an error occured in a worker thread\n", stderr);
-    }
-  }
-  if (threadError) {
-    for (size_t i = 0; i < nThreads; ++i)
-      free(workers[i].result);
-    free(workers);
+  array_forEach(workers, joinWorkerThread, &threadError);
+
+  if (threadError)
     return NMAP_FAILURE;
-  }
-  for (size_t i = 0; i < nThreads; ++i) {
-    // do something with results
-    free(workers[i].result);
-  }
-  free(workers);
+
+  // do something with results
+
   return NMAP_SUCCESS;
 }
