@@ -42,6 +42,7 @@ static void* NMAP_workerMain(void* arg) {
     .constructor = socketsConstructor,
     .destructor = socketsDestructor,
   };
+  // Array<Array<int>>
   Array* const sockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
   void* result;
 

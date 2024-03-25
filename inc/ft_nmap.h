@@ -70,13 +70,21 @@ enum e_nmap_port_status {
 struct s_nmap_options {
   uint32_t scan;
   uint8_t speedup;
+
+  // Array<in_addr_t>
   Array* ips;
+
+  // Array<uint16_t>
   Array* ports;
 };
 
 struct s_nmap_worker_options {
   uint32_t scan;
+
+  // Array<in_addr_t>
   const Array* ips;
+
+  // Array<uint16_t>
   Array* ports;
 };
 
