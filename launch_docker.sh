@@ -1,4 +1,4 @@
 #!/bin/zsh
 
-docker compose build
-docker compose up -d
+docker-compose up --build -d
+docker exec -it ft_nmap bash
