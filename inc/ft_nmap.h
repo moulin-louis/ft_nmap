@@ -29,6 +29,9 @@
 #include <unistd.h>
 // ----------------
 
+// library headers
+#include <array.h>
+
 // local headers
 #include "utils.h"
 // -------------
@@ -37,23 +40,22 @@
 #define NMAP_SUCCESS 0
 #define NMAP_FAILURE 1
 
-
 typedef struct s_nmap_options NMAP_Options;
+typedef struct s_nmap_dst_options NMAP_DstOptions;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
-typedef enum e_nmap_scan_type NMAP_ScanType;
 typedef enum e_nmap_option_key NMAP_OptionKey;
 typedef enum e_nmap_port_status NMAP_PortStatus;
+typedef uint32_t NMAP_ScanType;
 
-enum e_nmap_scan_type {
-  NMAP_SCAN_INVALID = -1,
-  NMAP_SCAN_SYN,
-  NMAP_SCAN_NULL,
-  NMAP_SCAN_FIN,
-  NMAP_SCAN_XMAS,
-  NMAP_SCAN_ACK,
-  NMAP_SCAN_UDP,
-};
+#define NMAP_SCAN_NONE 0b000000
+#define NMAP_SCAN_SYN 0b000001
+#define NMAP_SCAN_NULL 0b000010
+#define NMAP_SCAN_FIN 0b000100
+#define NMAP_SCAN_XMAS 0b001000
+#define NMAP_SCAN_ACK 0b010000
+#define NMAP_SCAN_UDP 0b100000
+#define NMAP_SCAN_ALL 0b111111
 
 enum e_nmap_option_key {
   NMAP_KEY_IP = 'i',
@@ -72,18 +74,24 @@ enum e_nmap_port_status {
 };
 
 struct s_nmap_options {
-  in_addr_t ip;
-  NMAP_ScanType scan;
+  uint32_t scan;
   uint8_t speedup;
-  uint16_t nPorts;
-  uint16_t ports[UINT16_MAX];
+
+  // Array<in_addr_t>
+  Array* ips;
+
+  // Array<uint16_t>
+  Array* ports;
 };
 
 struct s_nmap_worker_options {
-  in_addr_t ip;
-  NMAP_ScanType scan;
-  uint16_t nPorts;
-  uint16_t ports[UINT16_MAX];
+  uint32_t scan;
+
+  // Array<in_addr_t>
+  const Array* ips;
+
+  // Array<uint16_t>
+  Array* ports;
 };
 
 struct s_nmap_worker_data {
@@ -92,13 +100,17 @@ struct s_nmap_worker_data {
   void* result;
 };
 
+// options.c
+void NMAP_printOptions(const NMAP_Options* options);
+void NMAP_printWorkerOptions(const NMAP_WorkerOptions* options);
+// ---------
+
 // parser.c
-NMAP_Options NMAP_parseArgs(int argc, char** argv);
+NMAP_Options* NMAP_parseArgs(int argc, char** argv);
 // --------
 
 // scan_types.c
-const char* NMAP_getScanName(NMAP_ScanType scan);
-NMAP_ScanType NMAP_getScanNumber(const char* name);
+uint32_t NMAP_getScanNumber(const char* name);
 // ------------
 
 // worker.c

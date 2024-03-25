@@ -1,0 +1,8 @@
+*.so
+*.a
+build/
+.vscode/
+rxtree/
+rxtree.h
+rxtree_test.c
+array_test

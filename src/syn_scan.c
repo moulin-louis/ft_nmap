@@ -78,8 +78,11 @@ int64_t analysis_network(const NMAP_WorkerOptions* options, int32_t sockets[], N
 uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result) {
   pcap_if_t* devs = NULL;
   pcap_findalldevs(&devs, NULL);
-  for (uint64_t idx = 0; idx < options->nPorts; ++idx) {
-    const uint16_t port = options->ports[idx];
+  const uint16_t* const portsData = array_cData(options->ports);
+  const in_addr_t* const ipsData = array_cData(options->ips);
+
+  for (uint64_t idx = 0; idx < array_size(options->ports); ++idx) {
+    const uint16_t const port = portsData[idx];
     const int32_t sck = sockets[idx];
     uint8_t packet[sizeof(struct tcphdr)] = {0};
     struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
@@ -87,7 +90,7 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
     tcp_syn_craft_payload(tcp_hdr, port);
     dest.sin_family = AF_INET;
     dest.sin_port = tcp_hdr->dest;
-    dest.sin_addr.s_addr = options->ip;
+    dest.sin_addr.s_addr = ipsData[0];
     tcp_hdr->check =
       tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip(devs->name), dest.sin_addr);
     const int64_t retval = send_packet(sck, packet, sizeof(packet), 0, (struct sockaddr*)&dest);
@@ -97,19 +100,19 @@ uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], N
   pcap_freealldevs(devs);
   printf("All probes have been sent !\n");
   analysis_network(options, sockets, result);
-  for (uint64_t idx = 0; idx < options->nPorts; ++idx) {
+  for (uint64_t idx = 0; idx < array_size(options->ports); ++idx) {
     if (result[idx] != OPEN) {
       continue;
     }
     uint8_t packet[sizeof(struct tcphdr)] = {0};
-    const uint16_t port = options->ports[idx];
+    const uint16_t port = portsData[idx];
     const int32_t sck = sockets[idx];
     struct tcphdr* tcp_hdr = (struct tcphdr*)&packet;
     struct sockaddr_in dest = {0};
     tcp_syn_craft_payload(tcp_hdr, port);
     dest.sin_family = AF_INET;
     dest.sin_port = tcp_hdr->dest;
-    dest.sin_addr.s_addr = options->ip;
+    dest.sin_addr.s_addr = ipsData[0];
     tcp_hdr->syn = 0;
     tcp_hdr->rst = 1;
     tcp_hdr->check = tcp_checksum((uint16_t*)tcp_hdr, sizeof(struct tcphdr), get_interface_ip("eth0"), dest.sin_addr);
