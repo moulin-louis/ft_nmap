@@ -1,34 +1,43 @@
 #include <ft_nmap.h>
 
-static void cleanupThreadSockets(void* sockets) { array_destroy(sockets); }
-
-static void socketFdDestructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  int* const scks = data;
-
-  for (size_t i = 0; i < n; ++i)
-    if (scks[i] > 0)
-      close(scks[i]);
-}
-
 static int socketsConstructor(Array* arr, void* data, size_t n) {
   (void)arr;
-  Array** const sockets = data;
-
-  const ArrayFactory socketElementFactory = {
-    .destructor = socketFdDestructor,
-  };
-
+  int* const scks = data;
   for (size_t i = 0; i < n; ++i) {
-    sockets[i] = array(sizeof(int), 0, 0, NULL, &socketElementFactory);
-
-    if (!sockets[i])
+    scks[i] = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_TCP);
+    if (scks[i] == -1) {
+      perror("socket");
       return 1;
+    }
   }
   return 0;
 }
 
 static void socketsDestructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  int* const scks = data;
+
+  for (size_t i = 0; i < n; ++i)
+    close(scks[i]);
+}
+
+static int VecSocketsConstructor(Array* arr, void* data, size_t n) {
+  (void)arr;
+  Array** const sockets = data;
+  const size_t nPorts = array_capacity(arr);
+  const ArrayFactory socketElementFactory = {
+    .constructor = socketsConstructor,
+    .destructor = socketsDestructor,
+  };
+  for (size_t i = 0; i < n; ++i) {
+    sockets[i] = array(sizeof(int), nPorts, nPorts, NULL, &socketElementFactory);
+    if (sockets[i] == NULL)
+      return 1;
+  }
+  return 0;
+}
+
+static void VecSocketsDestructor(Array* arr, void* data, size_t n) {
   (void)arr;
   Array** const sockets = data;
 
@@ -40,61 +49,33 @@ static void* NMAP_workerMain(void* arg) {
   printf("Launching one scan\n");
   const NMAP_WorkerOptions* const options = arg;
   const ArrayFactory socketsFactory = {
-    .constructor = socketsConstructor,
-    .destructor = socketsDestructor,
+    .constructor = VecSocketsConstructor,
+    .destructor = VecSocketsDestructor,
   };
 
-  NMAP_printWorkerOptions(options);
-
-  // Array<Array<int>>
-  Array* const newSockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
-
-  if (!newSockets)
-    return NULL;
-
-  (void)newSockets;
-
-  NMAP_PortStatus* result = NULL;
-
-  // -----------------
-  // Now sockets is a 2D Array containing the sockets for each port for each ip
-  // For example to access the socket for the first port of the first ip:
-  // array_get(array_get(sockets, 0), 0)
-  // or the last port of the last ip:
-  // array_get(array_get(sockets, -1), -1)
-  // (returns a pointer to the socket)
-  // array_cGet is the const version of the function
-  // array_get has bounds checking (it will return NULL if the index is out of bounds)
-  // if you don't want bounds checking, use array_data or array_cData instead
-  // -----------------
-
-  // I added this pthread_cleanup_push call to free automatically the sockets in case
-  // of failure, but now you need to call pthread_exit(NULL) instead of just returning
-  // NULL, otherwise the cleanup handler won't be called
-  pthread_cleanup_push(cleanupThreadSockets, newSockets);
-
-  // Now we get the number of ports by looking at the size
-  // of the ports array instead of using options->nPorts
   const size_t nPorts = array_size(options->ports);
 
-  // You will now need to use the newSockets Array above instead
-  int32_t sockets[nPorts];
+  // Array<Array<int>>
+  Array* const VecSockets = array(sizeof(Array*), nPorts, nPorts, NULL, &socketsFactory);
+  if (VecSockets == NULL)
+    return NULL;
 
-  memset(sockets, 0, nPorts * sizeof(int32_t));
-  result = calloc(nPorts, sizeof(NMAP_PortStatus));
+  Array* result = array(sizeof(NMAP_PortStatus), nPorts, nPorts, NULL, NULL);
   if (result == NULL)
     return NULL;
-  if (options->scan & NMAP_SCAN_SYN || true) {
-    if (tcp_syn_init(nPorts, sockets))
-      return free(result), NULL;
-    if (tcp_syn_perform(options, sockets, result))
-      return free(result), NULL;
-  }
-  for (uint64_t idx = 0; idx < nPorts; ++idx)
-    close(sockets[idx]);
 
-  pthread_cleanup_pop(1);
+  if (options->scan & NMAP_SCAN_SYN || true) {
+    // if (tcp_syn_init(nPorts, tmp_sockets))
+      // goto error;
+    if (tcp_syn_perform(options, VecSockets, result))
+      goto error;
+  }
+  array_destroy(VecSockets);
   return result;
+error:
+  free(result);
+  array_destroy(VecSockets);
+  return NULL;
 }
 
 static void workerDataDestructor(Array* arr, void* data, size_t n) {
@@ -219,7 +200,7 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     const uint16_t* const portsData = array_cData(workersData[i].options.ports);
 
     for (uint64_t j = 0; j < array_size(workersData[i].options.ports); ++j) {
-      if (result[j] != CLOSE) {
+      if (result[j] != UNKOWN && result[j] != CLOSE) {
         printf("port %d status = %s\n", portsData[j], port_status_to_string(result[j]));
       }
     }

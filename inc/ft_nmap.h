@@ -27,6 +27,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <math.h>
 // ----------------
 
 // library headers
@@ -66,11 +68,11 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
-  OPEN = 1 << 0, // == 1
-  CLOSE = 1 << 1, // == 2
-  FILTERED = 1 << 2, // == 4
-  UNFILTERED = 1 << 3, // == 8
-  UNKOWN = 1 << 4, // == 16
+  UNKOWN = 0, // == 0
+  OPEN = 1 << 1, // == 2
+  CLOSE = 1 << 2, // == 4
+  FILTERED = 1 << 3, // == 8
+  UNFILTERED = 1 << 4, // == 16
 };
 
 struct s_nmap_options {
@@ -133,7 +135,7 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 uint64_t tcp_syn_init(uint16_t nPorts, int32_t sockets[]);
 
-uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result);
+uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, Array* VecSockets, Array* VecResult);
 
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
 
@@ -141,6 +143,8 @@ NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payl
 
 int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
-char* port_status_to_string(NMAP_PortStatus status);
 
+//Utils
+char* port_status_to_string(NMAP_PortStatus status);
+const char *inet_ntop_ez(const struct sockaddr_storage *ss, size_t sslen);
 #endif
