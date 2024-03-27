@@ -1,80 +1,25 @@
 #include <ft_nmap.h>
 
-static int socketsConstructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  int* const scks = data;
-  for (size_t i = 0; i < n; ++i) {
-    scks[i] = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_TCP);
-    if (scks[i] == -1) {
-      perror("socket");
-      return 1;
-    }
-  }
-  return 0;
-}
-
-static void socketsDestructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  int* const scks = data;
-
-  for (size_t i = 0; i < n; ++i)
-    close(scks[i]);
-}
-
-static int VecSocketsConstructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  Array** const sockets = data;
-  const size_t nPorts = array_capacity(arr);
-  const ArrayFactory socketElementFactory = {
-    .constructor = socketsConstructor,
-    .destructor = socketsDestructor,
-  };
-  for (size_t i = 0; i < n; ++i) {
-    sockets[i] = array(sizeof(int), nPorts, nPorts, NULL, &socketElementFactory);
-    if (sockets[i] == NULL)
-      return 1;
-  }
-  return 0;
-}
-
-static void VecSocketsDestructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  Array** const sockets = data;
-
-  for (size_t i = 0; i < n; ++i)
-    array_destroy(sockets[i]);
-}
-
 static void* NMAP_workerMain(void* arg) {
   printf("Launching one scan\n");
   const NMAP_WorkerOptions* const options = arg;
-  const ArrayFactory socketsFactory = {
-    .constructor = VecSocketsConstructor,
-    .destructor = VecSocketsDestructor,
-  };
 
   const size_t nPorts = array_size(options->ports);
 
-  // Array<Array<int>>
-  Array* const VecSockets = array(sizeof(Array*), nPorts, nPorts, NULL, &socketsFactory);
-  if (VecSockets == NULL)
-    return NULL;
-
+  const int32_t   raw_sockets = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   Array* result = array(sizeof(NMAP_PortStatus), nPorts, nPorts, NULL, NULL);
   if (result == NULL)
     return NULL;
 
   if (options->scan & NMAP_SCAN_SYN || true) {
     // if (tcp_syn_init(nPorts, tmp_sockets))
-      // goto error;
-    if (tcp_syn_perform(options, VecSockets, result))
+    // goto error;
+    if (tcp_syn_perform(options, raw_sockets, result))
       goto error;
   }
-  array_destroy(VecSockets);
   return result;
 error:
   free(result);
-  array_destroy(VecSockets);
   return NULL;
 }
 

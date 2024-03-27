@@ -135,7 +135,7 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 uint64_t tcp_syn_init(uint16_t nPorts, int32_t sockets[]);
 
-uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, Array* VecSockets, Array* VecResult);
+uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t VecSockets, Array* VecResult);
 
 void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
 

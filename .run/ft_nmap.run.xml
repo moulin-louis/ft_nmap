@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ft_nmap" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--ip 45.33.32.156 -p1-200" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ft_nmap" TARGET_NAME="ft_nmap" CONFIG_NAME="Debug-ssh ft_nmap" RUN_TARGET_PROJECT_NAME="ft_nmap" RUN_TARGET_NAME="ft_nmap">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
