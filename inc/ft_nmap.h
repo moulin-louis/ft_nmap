@@ -20,6 +20,8 @@
 #include <pcap.h>
 #include <pthread.h>
 #include <signal.h>
+//include select header
+#include <sys/select.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -38,17 +40,45 @@
 #include "utils.h"
 // -------------
 
+/* Timeval subtraction in microseconds */
+#define TIMEVAL_SUBTRACT(a,b) (((a).tv_sec - (b).tv_sec) * 1000000 + (a).tv_usec - (b).tv_usec)
+/* Timeval subtract in milliseconds */
+#define TIMEVAL_MSEC_SUBTRACT(a,b) ((((a).tv_sec - (b).tv_sec) * 1000) + ((a).tv_usec - (b).tv_usec) / 1000)
+/* Timeval subtract in seconds; truncate towards zero */
+#define TIMEVAL_SEC_SUBTRACT(a,b) ((a).tv_sec - (b).tv_sec + (((a).tv_usec < (b).tv_usec) ? - 1 : 0))
+/* Timeval subtract in fractional seconds; convert to float */
+#define TIMEVAL_FSEC_SUBTRACT(a,b) ((a).tv_sec - (b).tv_sec + (((a).tv_usec - (b).tv_usec)/1000000.0))
+
+/* assign one timeval to another timeval plus some msecs: a = b + msecs */
+#define TIMEVAL_MSEC_ADD(a, b, msecs) { (a).tv_sec = (b).tv_sec + ((msecs) / 1000); (a).tv_usec = (b).tv_usec + ((msecs) % 1000) * 1000; (a).tv_sec += (a).tv_usec / 1000000; (a).tv_usec %= 1000000; }
+#define TIMEVAL_ADD(a, b, usecs) { (a).tv_sec = (b).tv_sec + ((usecs) / 1000000); (a).tv_usec = (b).tv_usec + ((usecs) % 1000000); (a).tv_sec += (a).tv_usec / 1000000; (a).tv_usec %= 1000000; }
+
+/* Find our if one timeval is before or after another, avoiding the integer
+   overflow that can result when doing a TIMEVAL_SUBTRACT on two widely spaced
+   timevals. */
+#define TIMEVAL_BEFORE(a, b) (((a).tv_sec < (b).tv_sec) || ((a).tv_sec == (b).tv_sec && (a).tv_usec < (b).tv_usec))
+#define TIMEVAL_AFTER(a, b) (((a).tv_sec > (b).tv_sec) || ((a).tv_sec == (b).tv_sec && (a).tv_usec > (b).tv_usec))
+
+/* Convert a timeval to floating point seconds */
+#define TIMEVAL_SECS(a) ((double) (a).tv_sec + (double) (a).tv_usec / 1000000)
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX_LINK_HEADERSZ 24
+struct link_header {
+  int datalinktype; /* pcap_datalink(), such as DLT_EN10MB */
+  int headerlen; /* 0 if header was too big or unavailaable */
+  uint8_t header[MAX_LINK_HEADERSZ];
+};
 
 #define NMAP_SUCCESS 0
 #define NMAP_FAILURE 1
-
+typedef uint32_t NMAP_ScanType;
+typedef enum e_nmap_port_status NMAP_PortStatus;
 typedef struct s_nmap_options NMAP_Options;
 typedef struct s_nmap_dst_options NMAP_DstOptions;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
 typedef enum e_nmap_option_key NMAP_OptionKey;
-typedef enum e_nmap_port_status NMAP_PortStatus;
-typedef uint32_t NMAP_ScanType;
 
 #define NMAP_SCAN_NONE 0b000000
 #define NMAP_SCAN_SYN 0b000001
@@ -102,6 +132,9 @@ struct s_nmap_worker_data {
   void* result;
 };
 
+#include "t_host.h"
+#include "ultra_scan.h"
+
 // options.c
 void NMAP_printOptions(const NMAP_Options* options);
 void NMAP_printWorkerOptions(const NMAP_WorkerOptions* options);
@@ -120,6 +153,9 @@ int NMAP_spawnWorkers(const NMAP_Options* options);
 // --------
 
 
+// Engine function
+int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scantype);
+
 // Packet I/O
 
 uint64_t recv_packet(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, struct sockaddr* sender);
@@ -133,18 +169,10 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 // TCP SYN  Function
 
-uint64_t tcp_syn_init(uint16_t nPorts, int32_t sockets[]);
-
-uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t VecSockets, Array* VecResult);
-
-void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
+int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
-int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
-
-
 //Utils
 char* port_status_to_string(NMAP_PortStatus status);
-const char *inet_ntop_ez(const struct sockaddr_storage *ss, size_t sslen);
 #endif

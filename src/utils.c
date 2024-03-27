@@ -49,7 +49,7 @@ struct in_addr get_interface_ip(const char* ifname) {
   return ipAddr;
 }
 
-char* port_status_to_string(NMAP_PortStatus status) {
+char* port_status_to_string(const NMAP_PortStatus status) {
   switch (status) {
   case OPEN:
     return "OPEN";

@@ -6,26 +6,17 @@ static void* NMAP_workerMain(void* arg) {
 
   const size_t nPorts = array_size(options->ports);
 
-  const int32_t   raw_sockets = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
   Array* result = array(sizeof(NMAP_PortStatus), nPorts, nPorts, NULL, NULL);
   if (result == NULL)
     return NULL;
-
-  if (options->scan & NMAP_SCAN_SYN || true) {
-    // if (tcp_syn_init(nPorts, tmp_sockets))
-    // goto error;
-    if (tcp_syn_perform(options, raw_sockets, result))
-      goto error;
-  }
+  if (options->scan & NMAP_SCAN_SYN)
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_SYN);
   return result;
-error:
-  free(result);
-  return NULL;
 }
 
 static void workerDataDestructor(Array* arr, void* data, size_t n) {
   (void)arr;
-  NMAP_WorkerData* const workers = data;
+  const NMAP_WorkerData* const workers = data;
   for (size_t i = 0; i < n; ++i) {
     array_destroy(workers[i].options.ports);
     free(workers[i].result);
@@ -137,19 +128,6 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
 
   if (threadError)
     return NMAP_FAILURE;
-
-  // do something with result
-  for (size_t i = 0; i < nThreads; ++i) {
-    const NMAP_WorkerData* const workersData = array_cData(workers);
-    const NMAP_PortStatus* result = workersData[i].result;
-    const uint16_t* const portsData = array_cData(workersData[i].options.ports);
-
-    for (uint64_t j = 0; j < array_size(workersData[i].options.ports); ++j) {
-      if (result[j] != UNKOWN && result[j] != CLOSE) {
-        printf("port %d status = %s\n", portsData[j], port_status_to_string(result[j]));
-      }
-    }
-  }
 
   return NMAP_SUCCESS;
 }

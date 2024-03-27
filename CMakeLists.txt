@@ -15,6 +15,8 @@ add_custom_target(
 aux_source_directory(src SRC)
 add_executable(ft_nmap
         ${SRC}
+        inc/ultra_scan.h
+        src/t_host.c
 )
 
 target_link_libraries(ft_nmap
