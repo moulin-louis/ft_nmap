@@ -15,11 +15,14 @@
 #include <netinet/ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
 #include <pthread.h>
 #include <signal.h>
+//include poll header
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -27,6 +30,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <math.h>
 // ----------------
 
 // library headers
@@ -39,14 +44,13 @@
 
 #define NMAP_SUCCESS 0
 #define NMAP_FAILURE 1
-
+typedef uint32_t NMAP_ScanType;
+typedef enum e_nmap_port_status NMAP_PortStatus;
 typedef struct s_nmap_options NMAP_Options;
 typedef struct s_nmap_dst_options NMAP_DstOptions;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
 typedef enum e_nmap_option_key NMAP_OptionKey;
-typedef enum e_nmap_port_status NMAP_PortStatus;
-typedef uint32_t NMAP_ScanType;
 
 #define NMAP_SCAN_NONE 0b000000
 #define NMAP_SCAN_SYN 0b000001
@@ -66,11 +70,11 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
-  OPEN = 1 << 0, // == 1
-  CLOSE = 1 << 1, // == 2
-  FILTERED = 1 << 2, // == 4
-  UNFILTERED = 1 << 3, // == 8
-  UNKOWN = 1 << 4, // == 16
+  UNKOWN = 0, // == 0
+  OPEN = 1 << 1, // == 2
+  CLOSE = 1 << 2, // == 4
+  FILTERED = 1 << 3, // == 8
+  UNFILTERED = 1 << 4, // == 16
 };
 
 struct s_nmap_options {
@@ -100,6 +104,9 @@ struct s_nmap_worker_data {
   void* result;
 };
 
+#include "t_host.h"
+#include "ultra_scan.h"
+
 // options.c
 void NMAP_printOptions(const NMAP_Options* options);
 void NMAP_printWorkerOptions(const NMAP_WorkerOptions* options);
@@ -118,6 +125,9 @@ int NMAP_spawnWorkers(const NMAP_Options* options);
 // --------
 
 
+// Engine function
+int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scanType);
+
 // Packet I/O
 
 uint64_t recv_packet(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, struct sockaddr* sender);
@@ -131,16 +141,10 @@ uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr,
 
 // TCP SYN  Function
 
-uint64_t tcp_syn_init(uint16_t nPorts, int32_t sockets[]);
-
-uint64_t tcp_syn_perform(const NMAP_WorkerOptions* options, int32_t sockets[], NMAP_PortStatus* result);
-
-void tcp_syn_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
+int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
-int64_t tcp_syn_cleanup(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
-
+//Utils
 char* port_status_to_string(NMAP_PortStatus status);
-
 #endif

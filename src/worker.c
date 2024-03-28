@@ -1,108 +1,25 @@
 #include <ft_nmap.h>
 
-static void cleanupThreadSockets(void* sockets) { array_destroy(sockets); }
-
-static void socketFdDestructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  int* const scks = data;
-
-  for (size_t i = 0; i < n; ++i)
-    if (scks[i] > 0)
-      close(scks[i]);
-}
-
-static int socketsConstructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  Array** const sockets = data;
-
-  const ArrayFactory socketElementFactory = {
-    .destructor = socketFdDestructor,
-  };
-
-  for (size_t i = 0; i < n; ++i) {
-    sockets[i] = array(sizeof(int), 0, 0, NULL, &socketElementFactory);
-
-    if (!sockets[i])
-      return 1;
-  }
-  return 0;
-}
-
-static void socketsDestructor(Array* arr, void* data, size_t n) {
-  (void)arr;
-  Array** const sockets = data;
-
-  for (size_t i = 0; i < n; ++i)
-    array_destroy(sockets[i]);
-}
-
 static void* NMAP_workerMain(void* arg) {
   printf("Launching one scan\n");
   const NMAP_WorkerOptions* const options = arg;
-  const ArrayFactory socketsFactory = {
-    .constructor = socketsConstructor,
-    .destructor = socketsDestructor,
-  };
 
-  NMAP_printWorkerOptions(options);
-
-  // Array<Array<int>>
-  Array* const newSockets = array(sizeof(Array*), 0, 0, NULL, &socketsFactory);
-
-  if (!newSockets)
-    return NULL;
-
-  (void)newSockets;
-
-  NMAP_PortStatus* result = NULL;
-
-  // -----------------
-  // Now sockets is a 2D Array containing the sockets for each port for each ip
-  // For example to access the socket for the first port of the first ip:
-  // array_get(array_get(sockets, 0), 0)
-  // or the last port of the last ip:
-  // array_get(array_get(sockets, -1), -1)
-  // (returns a pointer to the socket)
-  // array_cGet is the const version of the function
-  // array_get has bounds checking (it will return NULL if the index is out of bounds)
-  // if you don't want bounds checking, use array_data or array_cData instead
-  // -----------------
-
-  // I added this pthread_cleanup_push call to free automatically the sockets in case
-  // of failure, but now you need to call pthread_exit(NULL) instead of just returning
-  // NULL, otherwise the cleanup handler won't be called
-  pthread_cleanup_push(cleanupThreadSockets, newSockets);
-
-  // Now we get the number of ports by looking at the size
-  // of the ports array instead of using options->nPorts
   const size_t nPorts = array_size(options->ports);
 
-  // You will now need to use the newSockets Array above instead
-  int32_t sockets[nPorts];
-
-  memset(sockets, 0, nPorts * sizeof(int32_t));
-  result = calloc(nPorts, sizeof(NMAP_PortStatus));
+  Array* result = array(sizeof(NMAP_PortStatus), nPorts, nPorts, NULL, NULL);
   if (result == NULL)
     return NULL;
-  if (options->scan & NMAP_SCAN_SYN || true) {
-    if (tcp_syn_init(nPorts, sockets))
-      return free(result), NULL;
-    if (tcp_syn_perform(options, sockets, result))
-      return free(result), NULL;
-  }
-  for (uint64_t idx = 0; idx < nPorts; ++idx)
-    close(sockets[idx]);
-
-  pthread_cleanup_pop(1);
+  if (options->scan & NMAP_SCAN_SYN)
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_SYN);
   return result;
 }
 
 static void workerDataDestructor(Array* arr, void* data, size_t n) {
   (void)arr;
-  NMAP_WorkerData* const workers = data;
+  const NMAP_WorkerData* const workers = data;
   for (size_t i = 0; i < n; ++i) {
     array_destroy(workers[i].options.ports);
-    free(workers[i].result);
+    array_destroy(workers[i].result);
   }
 }
 
@@ -211,19 +128,6 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
 
   if (threadError)
     return NMAP_FAILURE;
-
-  // do something with result
-  for (size_t i = 0; i < nThreads; ++i) {
-    const NMAP_WorkerData* const workersData = array_cData(workers);
-    const NMAP_PortStatus* result = workersData[i].result;
-    const uint16_t* const portsData = array_cData(workersData[i].options.ports);
-
-    for (uint64_t j = 0; j < array_size(workersData[i].options.ports); ++j) {
-      if (result[j] != CLOSE) {
-        printf("port %d status = %s\n", portsData[j], port_status_to_string(result[j]));
-      }
-    }
-  }
 
   return NMAP_SUCCESS;
 }

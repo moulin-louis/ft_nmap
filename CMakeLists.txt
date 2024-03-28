@@ -13,11 +13,7 @@ add_custom_target(
 )
 
 aux_source_directory(src SRC)
-add_executable(ft_nmap
-        ${SRC}
-)
+add_executable(ft_nmap ${SRC})
 
-target_link_libraries(ft_nmap
-        -lpcap -lpthread -lm -L${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata -ldata
-)
+target_link_libraries(ft_nmap -lpcap -lpthread -lm -L${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata -ldata)
 add_dependencies(ft_nmap libdata)

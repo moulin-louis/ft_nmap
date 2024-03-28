@@ -7,7 +7,7 @@ INCLUDE_PATHS=inc
 C_STANDARD=gnu17
 
 CC=gcc
-CFLAGS=-Wall -Werror -Wextra -std=$(C_STANDARD) $(addprefix -I, $(INCLUDE_PATHS)) -MMD
+CFLAGS=-Wall -Werror -Wextra -std=$(C_STANDARD) $(addprefix -I, $(INCLUDE_PATHS)) -MMD -g
 
 SRC_DIR=src
 OBJ_DIR=build

@@ -49,7 +49,7 @@ struct in_addr get_interface_ip(const char* ifname) {
   return ipAddr;
 }
 
-char* port_status_to_string(NMAP_PortStatus status) {
+char* port_status_to_string(const NMAP_PortStatus status) {
   switch (status) {
   case OPEN:
     return "OPEN";
@@ -63,4 +63,27 @@ char* port_status_to_string(NMAP_PortStatus status) {
     return "UNKNOW";
   }
   return "REALY REALY WEIRD STUFF IS HAPENING RIGHT NOW IN PORT STATUS TO STRING";
+}
+
+const char *inet_ntop_ez(const struct sockaddr_storage *ss, size_t sslen) {
+
+  const struct sockaddr_in *sin = (struct sockaddr_in *) ss;
+  static char str[INET6_ADDRSTRLEN];
+  const struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) ss;
+
+  str[0] = '\0';
+
+  if (sin->sin_family == AF_INET) {
+    if (sslen < sizeof(struct sockaddr_in))
+      return NULL;
+    return inet_ntop(AF_INET, &sin->sin_addr, str, sizeof(str));
+  }
+  else if(sin->sin_family == AF_INET6) {
+    if (sslen < sizeof(struct sockaddr_in6))
+      return NULL;
+    return inet_ntop(AF_INET6, &sin6->sin6_addr, str, sizeof(str));
+  }
+  //Some laptops report the ip and address family of disabled wifi cards as null
+  //so yes, we will hit this sometimes.
+  return NULL;
 }

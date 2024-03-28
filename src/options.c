@@ -2,7 +2,7 @@
 
 static int printPortElement(const Array* arr, size_t i, const void* value, void* param) {
   (void)arr, (void)i, (void)param;
-  printf("    %u,\n", *(uint16_t*)value);
+  printf(" %u,", *(uint16_t*)value);
   return 0;
 }
 
