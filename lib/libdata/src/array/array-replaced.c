@@ -28,14 +28,17 @@ Array * array_replacedWithin(
   if (array_setupRange(arr, &from, &to))
     return NULL;
 
-  Array * result =
-      array(array_dataSize(arr), to - from, 0, NULL, array_getFactory(arr));
+  Array * result = array(
+      array_dataSize(arr), array_size(arr), 0, NULL, array_getFactory(arr)
+  );
   if (!result)
     goto AnyError;
 
-  size_t resultIdx = 0;
   ptrdiff_t count, i;
   size_t n;
+
+  if (array_pushBack(result, array_cData(arr), from) == ARRAY_FAILURE)
+    goto AnyError;
 
   while (from < to) {
     count = 0;
@@ -46,14 +49,9 @@ Array * array_replacedWithin(
                                     array_dataSize(arr)
                                 ))
       ++count;
-    if (array_getFactory(result)->copyConstructor(
-            result,
-            array_dataOffset(result, resultIdx),
-            array_cDataOffset(arr, from),
-            count
-        ))
-      goto CopyConstructorError;
-    resultIdx += count;
+    if (array_pushBack(result, array_cDataOffset(arr, from), count) ==
+        ARRAY_FAILURE)
+      goto AnyError;
     from += count;
     count = 0;
     while (from + count < to && !memcmp(
@@ -62,40 +60,25 @@ Array * array_replacedWithin(
                                     array_dataSize(arr)
                                 ))
       ++count;
-    if (count) {
-      if (array_getFactory(result)->copyConstructor(
-              result, array_dataOffset(result, resultIdx), newValue, 1
-          ))
-        goto CopyConstructorError;
-      i = 1;
-      while (i < count) {
-        n = min(i, count - i);
-        if (array_getFactory(result)->copyConstructor(
-                result,
-                array_dataOffset(result, resultIdx + i),
-                array_cDataOffset(result, resultIdx),
-                n
-            ))
-          goto CopyConstructorError;
-        i += n;
-      }
-      resultIdx += count;
-      from += count;
-    } else
-      ++from;
+    if (array_pushBack(result, newValue, 1) == ARRAY_FAILURE)
+      goto AnyError;
+    i = 1;
+    while (i < count) {
+      n = min(i, count - i);
+      if (array_pushBack(result, array_cDataOffset(result, from), n) ==
+          ARRAY_FAILURE)
+        goto AnyError;
+      i += n;
+    }
+    from += count;
   }
-  array_setSize(result, resultIdx);
-  if (array_shrink(result) == ARRAY_FAILURE)
+  if (array_pushBack(
+          result, array_cDataOffset(arr, from), array_size(arr) - to
+      ) == ARRAY_FAILURE ||
+      array_shrink(result) == ARRAY_FAILURE)
     goto AnyError;
 
   return result;
-
-CopyConstructorError:
-
-  array_getFactory(result)->destructor(
-      result, array_data(result), resultIdx + i
-  );
-  array_errno = ARR_ECPYCTORFAIL;
 
 AnyError:
 
@@ -114,15 +97,17 @@ Array * array_replacedWithinIf(
   if (array_setupRange(arr, &from, &to))
     return NULL;
 
-  Array * result =
-      array(array_dataSize(arr), to - from, 0, NULL, array_getFactory(arr));
+  Array * result = array(
+      array_dataSize(arr), array_size(arr), 0, NULL, array_getFactory(arr)
+  );
   if (!result)
     goto AnyError;
 
-  size_t resultIdx = 0;
   size_t n;
   ptrdiff_t count, i;
 
+  if (array_pushBack(result, array_cData(arr), from) == ARRAY_FAILURE)
+    goto AnyError;
   while (from < to) {
     count = 0;
     i = 0;
@@ -131,54 +116,34 @@ Array * array_replacedWithinIf(
         !predFn(arr, from + count, array_cDataOffset(arr, from + count), param)
     )
       ++count;
-    if (array_getFactory(result)->copyConstructor(
-            result,
-            array_dataOffset(result, resultIdx),
-            array_cDataOffset(arr, from),
-            count
-        ))
-      goto CopyConstructorError;
-    resultIdx += count;
+    if (array_pushBack(result, array_cDataOffset(arr, from), count) ==
+        ARRAY_FAILURE)
+      goto AnyError;
     from += count;
     count = 0;
     while (from + count < to &&
            predFn(arr, from + count, array_dataOffset(arr, from + count), param)
     )
       ++count;
-    if (count) {
-      if (array_getFactory(result)->copyConstructor(
-              result, array_dataOffset(result, resultIdx), newValue, 1
-          ))
-        goto CopyConstructorError;
-      i = 1;
-      while (i < count) {
-        n = min(i, count - i);
-        if (array_getFactory(result)->copyConstructor(
-                result,
-                array_dataOffset(result, resultIdx + i),
-                array_cDataOffset(result, resultIdx),
-                n
-            ))
-          goto CopyConstructorError;
-        i += n;
-      }
-      resultIdx += count;
-      from += count;
-    } else
-      ++from;
+    if (array_pushBack(result, newValue, 1) == ARRAY_FAILURE)
+      goto AnyError;
+    i = 1;
+    while (i < count) {
+      n = min(i, count - i);
+      if (array_pushBack(result, array_cDataOffset(result, from), n) ==
+          ARRAY_FAILURE)
+        goto AnyError;
+      i += n;
+    }
+    from += count;
   }
-  array_setSize(result, resultIdx);
-  if (array_shrink(result) == ARRAY_FAILURE)
+  if (array_pushBack(
+          result, array_cDataOffset(arr, from), array_size(arr) - to
+      ) == ARRAY_FAILURE ||
+      array_shrink(result) == ARRAY_FAILURE)
     goto AnyError;
 
   return result;
-
-CopyConstructorError:
-
-  array_getFactory(result)->destructor(
-      result, array_data(result), resultIdx + i
-  );
-  array_errno = ARR_ECPYCTORFAIL;
 
 AnyError:
 

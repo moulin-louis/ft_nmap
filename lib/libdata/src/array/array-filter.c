@@ -61,7 +61,7 @@ int array_filterWithinIf(
 
     while (
         from + count < to &&
-        !predFn(arr, from + count, array_cDataOffset(arr, from + count), param)
+        predFn(arr, from + count, array_cDataOffset(arr, from + count), param)
     )
       ++count;
     if (count) {
