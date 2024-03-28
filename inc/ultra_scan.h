@@ -7,42 +7,43 @@
 
 #include "ft_nmap.h"
 
+/* Timeval subtraction in microseconds */
+#define TIMEVAL_SUBTRACT(a, b) (((a).tv_sec - (b).tv_sec) * 1000000 + (a).tv_usec - (b).tv_usec)
+#define TIMEVAL_BEFORE(a, b) (((a).tv_sec < (b).tv_sec) || ((a).tv_sec == (b).tv_sec && (a).tv_usec < (b).tv_usec))
+#define TIMEVAL_TO_MICROSC(a) ((a).tv_sec * 1000000 + (a).tv_usec)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 /**
  * @brief Structure to store all the information needed for ultra_scan engine.
- * @param {Array<struct s_hosts>} incompleteHosts - Vector of hosts to scan.
- * @param {UsHosts*} nextIter - Next host to scan.
- * @param {double} srtt - Smoothed Round-Trip Time.
- * @param {double} rttvar - Round-Trip Time Variance.
- * @param {double} timeout - Timeout for a probe.
- * @param {double} maxTimeout - Maximum timeout for a probe.
- * @param {double} minTimeout - Minimum timeout for a probe.
+ * @param {pcap_t*} handle - Pcap handle.
+ * @param {struct in_addr} inter_ip - IP address of the interface used for pcap handle.
+ * @param {int32_t} sock - raw socket file descriptor.
+ * @param {Array<t_host>} hosts - Vector of hosts to scan.
+ * @param {uint64_t} idxNextHost - Index of the next host to scan.
+ * @param {NMAPP_ScanType} scanType - Type of scan to perform
+ * @param {double} srtt - Smoothed Round-Trip Time in microseconds.
+ * @param {double} rttvar - Round-Trip Time Variance in microseconds.
+ * @param {double} timeout - Timeout for a probe in microseconds.
+ * @param {double} maxTimeout - Maximum timeout for a probe in microseconds.
+ * @param {double} minTimeout - Minimum timeout for a probe in microseconds.
  * @param {uint64_t} maxRetries - Maximum number of retries for a probe.
+ * @param {struct timeval} now - Current time.
  */
 typedef struct {
   pcap_t* handle;
   struct in_addr inter_ip;
   int32_t sock;
-  Array* incompleteHosts;
-  t_host* nextIter;
+  Array* hosts;
+  uint64_t idxNextHosts;
   NMAP_ScanType scanType;
-  double srtt;
-  double rttvar;
-  double timeout;
+  long double srtt;
+  long double rttvar;
+  long double timeout;
   double maxTimeout;
   double minTimeout;
   uint64_t maxRetries;
   struct timeval now;
 } NMAP_UltraScan;
-
-struct abstract_ip_hdr {
-  uint8_t version; /* 4 or 6. */
-  struct sockaddr_storage src;
-  struct sockaddr_storage dst;
-  uint8_t proto; /* IPv4 proto or IPv6 next header. */
-  uint8_t ttl;   /* IPv4 TTL or IPv6 hop limit. */
-  uint32_t ipid; /* IPv4 IP ID or IPv6 flow label. */
-};
-void us_default_init(NMAP_UltraScan* us);
 
 const char* inet_ntop_ez(const struct sockaddr_storage* ss, size_t sslen);
 

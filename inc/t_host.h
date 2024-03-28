@@ -7,36 +7,45 @@
 
 #include "ft_nmap.h"
 
-typedef enum {
-  PROBE_PENDING = 0,
-  PROBE_SENT = 1 << 0,
-  PROBE_RECV = 1 << 1,
-  PROBE_TIMEOUT = 1 << 2
-} ProbeStatus ;
+typedef enum { PROBE_PENDING = 0, PROBE_SENT = 1 << 0, PROBE_RECV = 1 << 1, PROBE_TIMEOUT = 1 << 2 } ProbeStatus;
 
-typedef struct {
+/**
+ * @brief Structure storing all the info needed for a port.
+ * @param {uint16_t} port - Port number.
+ * @param {NMAP_PortStatus} result - Result of the scan.
+ * @param {ProbeStatus} probeStatus - Status of the current probe.
+ * @param {struct timeval} sendTime - Time when the probe was sent.
+ * @param {struct timeval} recvTime - Time when the probe was received.
+ * @param {uint64_t} nprobes_sent - Number of probes sent.
+ * @param {uint64_t} __padding - Padding to align the structure on a 64 bits boundary.
+ */
+typedef struct s_port {
   uint16_t port;
   NMAP_PortStatus result;
   ProbeStatus probeStatus;
   struct timeval sendTime;
   struct timeval recvTime;
   uint64_t nprobes_sent;
+  uint64_t __padding;
 } t_port;
 
 /**
  * @brief Structure to store all the information needed for ultra_scan engine.
  * @param {struct in_addr} ip - IP address of the host.
  * @param {Array<t_port>} incompletePorts - Vector of ports to scan.
- * @param {t_port*} nextI - Next port to scan.
+ * @param {uint16_t} idx_ports - Index of the next port to scan.
+ * @param {bool} done - True if all the ports have been scanned.
  */
 typedef struct {
   struct in_addr ip;
-  uint64_t idx_ports;
   Array* ports;
-  t_port* nextIter;
+  uint16_t idx_ports;
+  bool done;
 } t_host;
 
+bool host_hasPortPendingLeft(const t_host* host);
 bool host_hasPortLeft(const t_host* host);
+
 t_port* host_nextIncPort(t_host* host);
 
 #endif // t_host_H

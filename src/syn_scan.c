@@ -32,7 +32,6 @@ int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_add
     perror("send_packet/retval");
     return 1;
   }
-  printf("One probe sent\n");
   return 0;
 }
 

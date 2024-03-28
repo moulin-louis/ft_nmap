@@ -19,7 +19,7 @@ static void workerDataDestructor(Array* arr, void* data, size_t n) {
   const NMAP_WorkerData* const workers = data;
   for (size_t i = 0; i < n; ++i) {
     array_destroy(workers[i].options.ports);
-    free(workers[i].result);
+    array_destroy(workers[i].result);
   }
 }
 
