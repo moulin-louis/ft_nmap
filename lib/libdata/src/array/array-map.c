@@ -17,7 +17,8 @@ Array * array_map(
   if (!dst)
     goto AnyError;
 
-  for (size_t i = 0; i < array_size(arr); ++i) {
+  size_t i;
+  for (i = 0; i < array_size(arr); ++i) {
     if (mapFn(
             arr, i, array_dataOffset(dst, i), array_dataOffset(arr, i), param
         ))
@@ -29,6 +30,7 @@ Array * array_map(
 
 MapFunctionError:
 
+  array_getFactory(dst)->destructor(dst, array_data(dst), i);
   array_destroy(dst);
   array_errno = ARR_EMAPFAIL;
 
@@ -64,7 +66,8 @@ Array * array_rMap(
   if (!dst)
     goto AnyError;
 
-  for (size_t i = array_size(arr); i > 0; --i) {
+  size_t i;
+  for (i = array_size(arr); i > 0; --i) {
     if (mapFn(
             arr,
             i - 1,
@@ -80,6 +83,9 @@ Array * array_rMap(
 
 MapFunctionError:
 
+  array_getFactory(dst)->destructor(
+      dst, array_dataOffset(dst, i), array_size(dst) - i
+  );
   array_destroy(dst);
   array_errno = ARR_EMAPFAIL;
 

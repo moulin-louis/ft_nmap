@@ -5,7 +5,7 @@
 #include "ft_nmap.h"
 
 
-bool host_hasPortPendingLeft(const t_host* host) {
+bool old_host_hasPortPendingLeft(const t_host* host) {
   for (uint64_t i = 0; i < array_size(host->ports); ++i) {
     const t_port* port = array_get(host->ports, i);
     if (port->probeStatus == PROBE_PENDING)
@@ -14,7 +14,8 @@ bool host_hasPortPendingLeft(const t_host* host) {
   return false;
 }
 
-bool host_hasPortLeft(const t_host* host) {
+
+bool old_host_hasPortLeft(const t_host* host) {
   for (uint64_t i = 0; i < array_size(host->ports); ++i) {
     const t_port* port = array_get(host->ports, i);
     if (port->probeStatus == PROBE_PENDING || port->probeStatus == PROBE_SENT)

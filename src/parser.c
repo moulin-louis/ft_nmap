@@ -14,7 +14,7 @@ static in_addr_t dnsLookup(const char* name) {
   return ip;
 }
 
-static int setUint16ToIndex(Array* arr, size_t i, void* value, void* param) {
+static int ArrayFn_setUint16ToIndex(Array* arr, size_t i, void* value, void* param) {
   (void)arr, (void)i, (void)param;
   *(uint16_t*)value = i;
   return 0;
@@ -164,7 +164,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     if (array_empty(input->ports)) {
       if (array_resize(input->ports, UINT16_MAX + 1))
         return NMAP_FAILURE;
-      array_forEach(input->ports, setUint16ToIndex, NULL);
+      array_forEach(input->ports, ArrayFn_setUint16ToIndex, NULL);
     }
     array_shrink(input->ips);
     array_shrink(input->ports);

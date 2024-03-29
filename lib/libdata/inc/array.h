@@ -25,14 +25,14 @@ typedef struct s_array_factory ArrayFactory;
 **
 ** @return A pointer to the allocated memory, or `NULL` in case of failure.
 */
-typedef void * ArrayAllocatorFunction(size_t size);
+typedef void* ArrayAllocatorFunction(size_t size);
 
 /*
 ** The function signature for the deallocator function used by `ArrayFactory`.
 **
 ** @param ptr The pointer to the memory to deallocate.
 */
-typedef void ArrayDeallocatorFunction(void * ptr);
+typedef void ArrayDeallocatorFunction(void* ptr);
 
 /*
 ** The function signature for the reallocator function used by `ArrayFactory`.
@@ -42,7 +42,7 @@ typedef void ArrayDeallocatorFunction(void * ptr);
 **
 ** @return A pointer to the reallocated memory, or `NULL` in case of failure.
 */
-typedef void * ArrayReallocatorFunction(void * ptr, size_t size);
+typedef void* ArrayReallocatorFunction(void* ptr, size_t size);
 
 /*
 ** The function signature for the default constructor function used by
@@ -54,7 +54,7 @@ typedef void * ArrayReallocatorFunction(void * ptr, size_t size);
 **
 ** @return `0` in case of success, any other value otherwise.
 */
-typedef int ArrayCtorFunction(Array * array, void * data, size_t n);
+typedef int ArrayCtorFunction(Array* array, void* data, size_t n);
 
 /*
 ** The function signature for the copy constructor function used by
@@ -67,8 +67,7 @@ typedef int ArrayCtorFunction(Array * array, void * data, size_t n);
 **
 ** @return `0` in case of success, any other value otherwise.
 */
-typedef int
-ArrayCopyCtorFunction(Array * array, void * dst, const void * src, size_t n);
+typedef int ArrayCopyCtorFunction(Array* array, void* dst, const void* src, size_t n);
 
 /*
 ** The function signature for the destructor function used by `ArrayFactory`.
@@ -77,7 +76,7 @@ ArrayCopyCtorFunction(Array * array, void * dst, const void * src, size_t n);
 ** @param data A pointer to the data to destroy inside the array.
 ** @param n The number of elements to destroy.
 */
-typedef void ArrayDtorFunction(Array * array, void * data, size_t n);
+typedef void ArrayDtorFunction(Array* array, void* data, size_t n);
 
 /*
 ** The function signature for the iterator function used by the `array_forEach`
@@ -90,8 +89,7 @@ typedef void ArrayDtorFunction(Array * array, void * data, size_t n);
 **
 ** @return `0` in case of success, any other value otherwise.
 */
-typedef int
-ArrayIterFunction(Array * array, size_t i, void * value, void * param);
+typedef int ArrayIterFunction(Array* array, size_t i, void* value, void* param);
 
 /*
 ** The function signature for the const iterator function used by the
@@ -106,9 +104,7 @@ ArrayIterFunction(Array * array, size_t i, void * value, void * param);
 **
 ** @note This is the const version of `ArrayIterFunction`.
 */
-typedef int ArrayCIterFunction(
-    const Array * array, size_t i, const void * value, void * param
-);
+typedef int ArrayCIterFunction(const Array* array, size_t i, const void* value, void* param);
 
 /*
 ** The function signature for the map function used by the `array_map` and
@@ -122,8 +118,7 @@ typedef int ArrayCIterFunction(
 **
 ** @return `0` in case of success, any other value otherwise.
 */
-typedef int
-ArrayMapFunction(Array * array, size_t i, void * dst, void * src, void * param);
+typedef int ArrayMapFunction(Array* array, size_t i, void* dst, void* src, void* param);
 
 /*
 ** The function signature for the const map function used by the `array_cMap`
@@ -139,9 +134,7 @@ ArrayMapFunction(Array * array, size_t i, void * dst, void * src, void * param);
 **
 ** @note This is the const version of `ArrayMapFunction`.
 */
-typedef int ArrayCMapFunction(
-    const Array * array, size_t i, void * dst, const void * src, void * param
-);
+typedef int ArrayCMapFunction(const Array* array, size_t i, void* dst, const void* src, void* param);
 
 /*
 ** The function signature for the compare function used by the `array_sort`,
@@ -154,8 +147,7 @@ typedef int ArrayCMapFunction(
 ** @return A negative value if `lhs` is less than `rhs`, a positive value if
 **         `lhs` is greater than `rhs`, or `0` if they are equal.
 */
-typedef int
-ArrayCompareFunction(const void * lhs, const void * rhs, void * param);
+typedef int ArrayCompareFunction(const void* lhs, const void* rhs, void* param);
 
 /*
 ** The function signature for the predicate function used by the `array_XIf`
@@ -168,64 +160,60 @@ ArrayCompareFunction(const void * lhs, const void * rhs, void * param);
 **
 ** @return `true` if the predicate is satisfied, `false` otherwise.
 */
-typedef bool ArrayPredicateFunction(
-    const Array * array, size_t i, const void * value, const void * param
-);
+typedef bool ArrayPredicateFunction(const Array* array, size_t i, const void* value, const void* param);
 
 struct s_array_factory {
   // The allocator function (by default, `malloc`)
-  ArrayAllocatorFunction * allocator;
+  ArrayAllocatorFunction* allocator;
 
   // The deallocator function (by default, `free`)
-  ArrayDeallocatorFunction * deallocator;
+  ArrayDeallocatorFunction* deallocator;
 
   // The reallocator function (by default, `realloc`)
-  ArrayReallocatorFunction * reallocator;
+  ArrayReallocatorFunction* reallocator;
 
   // The constructor function (by default, the memory is zeroed using `memset`)
-  ArrayCtorFunction * constructor;
+  ArrayCtorFunction* constructor;
 
   // The copy constructor function (by default, the memory is copied byte by
   // byte using `memcpy`)
-  ArrayCopyCtorFunction * copyConstructor;
+  ArrayCopyCtorFunction* copyConstructor;
 
   // The destructor function (by default, nothing is done)
-  ArrayDtorFunction * destructor;
+  ArrayDtorFunction* destructor;
 };
 
 #if defined ARRAY_IMPL || defined ARRAY_USE_IMPL
 
-# include "tools.h"
 # include <assert.h>
 # include <math.h>
 # include <stdatomic.h>
 # include <stdint.h>
 # include <stdlib.h>
 # include <string.h>
+# include "tools.h"
 
-void array_setDataSize(Array * array, size_t dataSize);
-void array_setFactory(Array * array, const ArrayFactory * factory);
-void array_setCapacity(Array * array, size_t capacity);
-void array_setSize(Array * array, size_t size);
-void array_setData(Array * array, uint8_t * data);
+void array_setDataSize(Array* array, size_t dataSize);
+void array_setFactory(Array* array, const ArrayFactory* factory);
+void array_setCapacity(Array* array, size_t capacity);
+void array_setSize(Array* array, size_t size);
+void array_setData(Array* array, uint8_t* data);
 
 size_t array_typeSize(void);
 
-void * array_dataOffset(const Array * array, ptrdiff_t pos);
-const void * array_cDataOffset(const Array * array, ptrdiff_t pos);
+void* array_dataOffset(const Array* array, ptrdiff_t pos);
+const void* array_cDataOffset(const Array* array, ptrdiff_t pos);
 
-int array_defaultCtor(Array * array, void * data, size_t n);
-int array_defaultCopyCtor(
-    Array * array, void * dst, const void * src, size_t n
-);
-void array_defaultDtor(Array * array, void * data, size_t n);
+int array_defaultCtor(Array* array, void* data, size_t n);
+int array_defaultCopyCtor(Array* array, void* dst, const void* src, size_t n);
+void array_defaultDtor(Array* array, void* data, size_t n);
 
-ArrayFactory array_factory(const ArrayFactory * input);
+ArrayFactory array_factory(const ArrayFactory* input);
 
-int array_grow(Array * array, size_t minCapacity);
+int array_grow(Array* array, size_t minCapacity);
 
-int array_setupPos(const Array * array, ptrdiff_t * pos);
-int array_setupRange(const Array * array, ptrdiff_t * from, ptrdiff_t * to);
+int array_setupPos(const Array* array, ptrdiff_t* pos);
+int array_setupRange(const Array* array, ptrdiff_t* from, ptrdiff_t* to);
 
 # ifdef ARRAY_IMPL
 
@@ -234,7 +222,7 @@ struct s_array {
   ArrayFactory factory;
   size_t capacity;
   size_t size;
-  uint8_t * data;
+  uint8_t* data;
 };
 
 # endif
@@ -269,7 +257,7 @@ enum e_array_error {
 
 #define array_errno *array_errno_location()
 
-_Atomic uint8_t * array_errno_location(void);
+_Atomic uint8_t* array_errno_location(void);
 
 /*
 ** Create a new array.
@@ -299,13 +287,7 @@ _Atomic uint8_t * array_errno_location(void);
 **       replaced by the default one. (see `struct s_array_factory` for more
 **       details).
 */
-Array * array(
-    size_t dataSize,
-    size_t capacity,
-    size_t size,
-    const void * data,
-    const ArrayFactory * factory
-);
+Array* array(size_t dataSize, size_t capacity, size_t size, const void* data, const ArrayFactory* factory);
 
 /*
 ** Clone an array.
@@ -319,7 +301,7 @@ Array * array(
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 ** @throws - `ARR_ECPYCTORFAIL` if the copy constructor failed.
 */
-Array * array_clone(const Array * array);
+Array* array_clone(const Array* array);
 
 /*
 ** Clear an array.
@@ -328,7 +310,7 @@ Array * array_clone(const Array * array);
 **
 ** @note The array will be empty after this operation.
 */
-void array_clear(Array * array);
+void array_clear(Array* array);
 
 /*
 ** Destroy an array.
@@ -338,7 +320,7 @@ void array_clear(Array * array);
 ** @note The array will be freed after this operation, and no
 **       operation should be done on it after this call.
 */
-void array_destroy(Array * array);
+void array_destroy(Array* array);
 
 /*
 ** Get the description for the last error that occured.
@@ -346,7 +328,7 @@ void array_destroy(Array * array);
 ** @return The last error message.
 ** @note This function is thread-safe, `array_errno` too.
 */
-const char * array_strerror(void);
+const char* array_strerror(void);
 
 /*
 ** Get the size of a single element in the array.
@@ -355,7 +337,7 @@ const char * array_strerror(void);
 **
 ** @return The size (in bytes) of a single element in the array.
 */
-size_t array_dataSize(const Array * array);
+size_t array_dataSize(const Array* array);
 
 /*
 ** Get the size of the array.
@@ -364,7 +346,7 @@ size_t array_dataSize(const Array * array);
 **
 ** @return The size of the array.
 */
-size_t array_size(const Array * array);
+size_t array_size(const Array* array);
 
 /*
 ** Check if the array is empty.
@@ -373,7 +355,7 @@ size_t array_size(const Array * array);
 **
 ** @return `true` if the array is empty, `false` otherwise.
 */
-bool array_empty(const Array * array);
+bool array_empty(const Array* array);
 
 /*
 ** Get the capacity of the array.
@@ -383,7 +365,7 @@ bool array_empty(const Array * array);
 ** @return The capacity of the array (the number of elements it can hold without
 **         a reallocation).
 */
-size_t array_capacity(const Array * array);
+size_t array_capacity(const Array* array);
 
 /*
 ** Get the factory of the array.
@@ -392,7 +374,7 @@ size_t array_capacity(const Array * array);
 **
 ** @return A const pointer to the factory of the array.
 */
-const ArrayFactory * array_getFactory(const Array * array);
+const ArrayFactory* array_getFactory(const Array* array);
 
 /*
 ** Get the element at the specified position.
@@ -407,7 +389,7 @@ const ArrayFactory * array_getFactory(const Array * array);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the position is out of range.
 */
-void * array_get(Array * array, ptrdiff_t pos);
+void* array_get(Array* array, ptrdiff_t pos);
 
 /*
 ** Get the element at the specified position.
@@ -424,7 +406,7 @@ void * array_get(Array * array, ptrdiff_t pos);
 **
 ** @note This is the const version of `array_get`.
 */
-const void * array_cGet(const Array * array, ptrdiff_t pos);
+const void* array_cGet(const Array* array, ptrdiff_t pos);
 
 /*
 ** Set the element at the specified position.
@@ -440,7 +422,7 @@ const void * array_cGet(const Array * array, ptrdiff_t pos);
 ** @throws - `ARR_ERANGE` if the position is out of range.
 ** @throws - `ARR_ECPYCTORFAIL` if the copy constructor failed.
 */
-int array_set(Array * array, ptrdiff_t pos, const void * value);
+int array_set(Array* array, ptrdiff_t pos, const void* value);
 
 /*
 ** Get the first element of the array.
@@ -453,7 +435,7 @@ int array_set(Array * array, ptrdiff_t pos, const void * value);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the array is empty.
 */
-void * array_front(Array * array);
+void* array_front(Array* array);
 
 /*
 ** Get the first element of the array.
@@ -468,7 +450,7 @@ void * array_front(Array * array);
 **
 ** @note This is the const version of `array_front`.
 */
-const void * array_cFront(const Array * array);
+const void* array_cFront(const Array* array);
 
 /*
 ** Get the last element of the array.
@@ -481,7 +463,7 @@ const void * array_cFront(const Array * array);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the array is empty.
 */
-void * array_back(Array * array);
+void* array_back(Array* array);
 
 /*
 ** Get the last element of the array.
@@ -496,7 +478,7 @@ void * array_back(Array * array);
 **
 ** @note This is the const version of `array_back`.
 */
-const void * array_cBack(const Array * array);
+const void* array_cBack(const Array* array);
 
 /*
 ** Get the data of the array.
@@ -505,7 +487,7 @@ const void * array_cBack(const Array * array);
 **
 ** @return A pointer to the data of the array.
 */
-void * array_data(Array * array);
+void* array_data(Array* array);
 
 /*
 ** Get the data of the array.
@@ -516,7 +498,7 @@ void * array_data(Array * array);
 **
 ** @note This is the const version of `array_data`.
 */
-const void * array_cData(const Array * array);
+const void* array_cData(const Array* array);
 
 /*
 ** Reserve memory for the array.
@@ -531,7 +513,7 @@ const void * array_cData(const Array * array);
 **
 ** @note If `capacity` is less than the current capacity, nothing will be done.
 */
-int array_reserve(Array * array, size_t capacity);
+int array_reserve(Array* array, size_t capacity);
 
 /*
 ** Resize the array.
@@ -550,7 +532,7 @@ int array_reserve(Array * array, size_t capacity);
 ** @note If `size` is less than the current size, the `array_size(array) - size`
 **       last elements will be destroyed.
 */
-int array_resize(Array * array, size_t size);
+int array_resize(Array* array, size_t size);
 
 /*
 ** Shrink the array to fit its size.
@@ -565,7 +547,7 @@ int array_resize(Array * array, size_t size);
 ** @note After this operation, the capacity of the array will be equal to its
 **       size.
 */
-int array_shrink(Array * array);
+int array_shrink(Array* array);
 
 /*
 ** Assign the data of another array to this array.
@@ -579,7 +561,7 @@ int array_shrink(Array * array);
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 ** @throws - `ARR_ECPYCTORFAIL` if the copy constructor failed.
 */
-int array_assign(Array * array, const Array * other);
+int array_assign(Array* array, const Array* other);
 
 /*
 ** Assign raw data to the array.
@@ -597,7 +579,7 @@ int array_assign(Array * array, const Array * other);
 ** @note `data` must point to a buffer of at least `count *
 **        array_dataSize(array)` bytes.
 */
-int array_assignData(Array * array, const void * data, size_t count);
+int array_assignData(Array* array, const void* data, size_t count);
 
 /*
 ** Insert default constructed elements into the array.
@@ -614,7 +596,7 @@ int array_assignData(Array * array, const void * data, size_t count);
 ** @throws - `ARR_ECTORFAIL` if the default constructor failed.
 ** @throws - `ARR_ERANGE` if the position is out of range.
 */
-int array_emplace(Array * array, ptrdiff_t pos, size_t count);
+int array_emplace(Array* array, ptrdiff_t pos, size_t count);
 
 /*
 ** Insert default constructed elements at the back of the array.
@@ -630,7 +612,7 @@ int array_emplace(Array * array, ptrdiff_t pos, size_t count);
 **
 ** @note This is equivalent to `array_emplace(array, array_size(array), count)`.
 */
-int array_emplaceBack(Array * array, size_t count);
+int array_emplaceBack(Array* array, size_t count);
 
 /*
 ** Insert default constructed elements at the front of the array.
@@ -646,7 +628,7 @@ int array_emplaceBack(Array * array, size_t count);
 **
 ** @note This is equivalent to `array_emplace(array, 0, count)`.
 */
-int array_emplaceFront(Array * array, size_t count);
+int array_emplaceFront(Array* array, size_t count);
 
 /*
 ** Insert elements into the array.
@@ -667,7 +649,7 @@ int array_emplaceFront(Array * array, size_t count);
 ** @note `values` must point to a buffer of at least `count *
 **        array_dataSize(array)` bytes.
 */
-int array_push(Array * array, ptrdiff_t pos, const void * values, size_t count);
+int array_push(Array* array, ptrdiff_t pos, const void* values, size_t count);
 
 /*
 ** Insert elements at the back of the array.
@@ -685,7 +667,7 @@ int array_push(Array * array, ptrdiff_t pos, const void * values, size_t count);
 ** @note This is equivalent to `array_push(array, array_size(array), values,
 **        count)`.
 */
-int array_pushBack(Array * array, const void * values, size_t count);
+int array_pushBack(Array* array, const void* values, size_t count);
 
 /*
 ** Insert elements at the front of the array.
@@ -702,7 +684,7 @@ int array_pushBack(Array * array, const void * values, size_t count);
 **
 ** @note This is equivalent to `array_push(array, 0, values, count)`.
 */
-int array_pushFront(Array * array, const void * values, size_t count);
+int array_pushFront(Array* array, const void* values, size_t count);
 
 /*
 ** Remove elements from the array.
@@ -720,9 +702,7 @@ int array_pushFront(Array * array, const void * values, size_t count);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the position is out of range.
 */
-int array_pop(
-    Array * array, ptrdiff_t pos, size_t requestedCount, size_t * count
-);
+int array_pop(Array* array, ptrdiff_t pos, size_t requestedCount, size_t* count);
 
 /*
 ** Remove elements from the back of the array.
@@ -741,7 +721,7 @@ int array_pop(
 ** @note This is equivalent to `array_pop(array, -requestedCount,
 **       requestedCount, count)`.
 */
-int array_popBack(Array * array, size_t requestedCount, size_t * count);
+int array_popBack(Array* array, size_t requestedCount, size_t* count);
 
 /*
 ** Remove elements from the front of the array.
@@ -756,7 +736,7 @@ int array_popBack(Array * array, size_t requestedCount, size_t * count);
 **
 ** @note This is equivalent to `array_pop(array, 0, requestedCount, count)`.
 */
-int array_popFront(Array * array, size_t requestedCount, size_t * count);
+int array_popFront(Array* array, size_t requestedCount, size_t* count);
 
 /*
 ** Apply a callback function to each element of the array, starting from the
@@ -776,7 +756,7 @@ int array_popFront(Array * array, size_t requestedCount, size_t * count);
 ** @note This is equivalent to `array_forEachWithin(array, 0, array_size(array),
 **       iterFn, param)`.
 */
-int array_forEach(Array * array, ArrayIterFunction * iterFn, void * param);
+int array_forEach(Array* array, ArrayIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of the array, starting from the
@@ -797,9 +777,7 @@ int array_forEach(Array * array, ArrayIterFunction * iterFn, void * param);
 ** @note This is equivalent to `array_cForEachWithin(array, 0,
 **       array_size(array), iterFn, param)`.
 */
-int array_cForEach(
-    const Array * array, ArrayCIterFunction * iterFn, void * param
-);
+int array_cForEach(const Array* array, ArrayCIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of the array, starting from the
@@ -816,7 +794,7 @@ int array_cForEach(
 ** @throws - `ARR_EITERFAIL` if the `iterFn` failed (which means that it
 **         returned a non-zero value).
 */
-int array_rForEach(Array * array, ArrayIterFunction * iterFn, void * param);
+int array_rForEach(Array* array, ArrayIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of the array, starting from the
@@ -837,9 +815,7 @@ int array_rForEach(Array * array, ArrayIterFunction * iterFn, void * param);
 ** @note This is equivalent to `array_crForEachWithin(array, 0,
 **       array_size(array), iterFn, param)`.
 */
-int array_crForEach(
-    const Array * array, ArrayCIterFunction * iterFn, void * param
-);
+int array_crForEach(const Array* array, ArrayCIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of a specified range within the
@@ -863,13 +839,7 @@ int array_crForEach(
 **
 ** @note If `from` is greater than `to`, the range will be empty.
 */
-int array_forEachWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayIterFunction * iterFn,
-    void * param
-);
+int array_forEachWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of a specified range within the
@@ -895,13 +865,7 @@ int array_forEachWithin(
 ** @note This is the const version of `array_forEachWithin`.
 ** @note If `from` is greater than `to`, the range will be empty.
 */
-int array_cForEachWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCIterFunction * iterFn,
-    void * param
-);
+int array_cForEachWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of a specified range within the
@@ -925,13 +889,7 @@ int array_cForEachWithin(
 **
 ** @note If `from` is greater than `to`, the range will be empty.
 */
-int array_rForEachWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayIterFunction * iterFn,
-    void * param
-);
+int array_rForEachWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayIterFunction* iterFn, void* param);
 
 /*
 ** Apply a callback function to each element of a specified range within the
@@ -957,13 +915,7 @@ int array_rForEachWithin(
 ** @note This is the const version of `array_rForEachWithin`.
 ** @note If `from` is greater than `to`, the range will be empty.
 */
-int array_crForEachWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCIterFunction * iterFn,
-    void * param
-);
+int array_crForEachWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCIterFunction* iterFn, void* param);
 
 /*
 ** Create a new array resulting from successive applications of a callback
@@ -991,13 +943,7 @@ int array_crForEachWithin(
 **       be replaced by the default one. (see `struct s_array_factory` for more
 **       details).
 */
-Array * array_map(
-    Array * array,
-    size_t dataSize,
-    const ArrayFactory * factory,
-    ArrayMapFunction * mapFn,
-    void * param
-);
+Array* array_map(Array* array, size_t dataSize, const ArrayFactory* factory, ArrayMapFunction* mapFn, void* param);
 
 /*
 ** Create a new array resulting from successive applications of a callback
@@ -1027,13 +973,8 @@ Array * array_map(
 **       details).
 ** @note This is the const version of `array_map`.
 */
-Array * array_cMap(
-    const Array * array,
-    size_t dataSize,
-    const ArrayFactory * factory,
-    ArrayCMapFunction * cmapFn,
-    void * param
-);
+Array* array_cMap(const Array* array, size_t dataSize, const ArrayFactory* factory, ArrayCMapFunction* cmapFn,
+                  void* param);
 
 /*
 ** Create a new array resulting from successive applications of a callback
@@ -1063,13 +1004,7 @@ Array * array_cMap(
 ** @note The returned array will not be reversed, only the order of the callback
 **       function applications will be.
 */
-Array * array_rMap(
-    Array * array,
-    size_t dataSize,
-    const ArrayFactory * factory,
-    ArrayMapFunction * mapFn,
-    void * param
-);
+Array* array_rMap(Array* array, size_t dataSize, const ArrayFactory* factory, ArrayMapFunction* mapFn, void* param);
 
 /*
 ** Create a new array resulting from successive applications of a callback
@@ -1101,13 +1036,8 @@ Array * array_rMap(
 **       function applications will be.
 ** @note This is the const version of `array_rMap`.
 */
-Array * array_crMap(
-    const Array * array,
-    size_t dataSize,
-    const ArrayFactory * factory,
-    ArrayCMapFunction * cmapFn,
-    void * param
-);
+Array* array_crMap(const Array* array, size_t dataSize, const ArrayFactory* factory, ArrayCMapFunction* cmapFn,
+                   void* param);
 
 /*
 ** Reduce the array to a single value (allocated with malloc), starting from the
@@ -1132,13 +1062,7 @@ Array * array_crMap(
 ** @note The map function will receive the accumulator as the `dst` parameter,
 **       and the current element of the array as the `src` parameter.
 */
-void * array_reduce(
-    Array * array,
-    size_t dataSize,
-    const void * init,
-    ArrayMapFunction * mapFn,
-    void * param
-);
+void* array_reduce(Array* array, size_t dataSize, const void* init, ArrayMapFunction* mapFn, void* param);
 
 /*
 ** Reduce the array to a single value (allocated with malloc), starting from the
@@ -1164,13 +1088,7 @@ void * array_reduce(
 **       and the current element of the array as the `src` parameter.
 ** @note This is the const version of `array_reduce`.
 */
-void * array_cReduce(
-    const Array * array,
-    size_t dataSize,
-    const void * init,
-    ArrayCMapFunction * cmapFn,
-    void * param
-);
+void* array_cReduce(const Array* array, size_t dataSize, const void* init, ArrayCMapFunction* cmapFn, void* param);
 
 /*
 ** Reduce the array to a single value (allocated with malloc), starting from the
@@ -1195,13 +1113,7 @@ void * array_cReduce(
 ** @note The map function will receive the accumulator as the `dst` parameter,
 **       and the current element of the array as the `src` parameter.
 */
-void * array_rReduce(
-    Array * array,
-    size_t dataSize,
-    const void * init,
-    ArrayMapFunction * mapFn,
-    void * param
-);
+void* array_rReduce(Array* array, size_t dataSize, const void* init, ArrayMapFunction* mapFn, void* param);
 
 /*
 ** Reduce the array to a single value (allocated with malloc), starting from the
@@ -1227,13 +1139,7 @@ void * array_rReduce(
 **       and the current element of the array as the `src` parameter.
 ** @note This is the const version of `array_rReduce`.
 */
-void * array_crReduce(
-    const Array * array,
-    size_t dataSize,
-    const void * init,
-    ArrayCMapFunction * cmapFn,
-    void * param
-);
+void* array_crReduce(const Array* array, size_t dataSize, const void* init, ArrayCMapFunction* cmapFn, void* param);
 
 /*
 ** Sort an array.
@@ -1252,7 +1158,7 @@ void * array_crReduce(
 **       cmpFn, param)`.
 ** @note The merge sort algorithm is used.
 */
-int array_sort(Array * array, ArrayCompareFunction * cmpFn, void * param);
+int array_sort(Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Sort a range within an array.
@@ -1274,13 +1180,7 @@ int array_sort(Array * array, ArrayCompareFunction * cmpFn, void * param);
 **
 ** @note The merge sort algorithm is used.
 */
-int array_sortWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+int array_sortWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Create a new array resulting from the sorting of the elements of the array.
@@ -1300,8 +1200,7 @@ int array_sortWithin(
 **       cmpFn, param)`.
 ** @note The merge sort algorithm is used.
 */
-Array *
-array_sorted(const Array * array, ArrayCompareFunction * cmpFn, void * param);
+Array* array_sorted(const Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Create a new array resulting from the sorting of a range within the array.
@@ -1324,13 +1223,7 @@ array_sorted(const Array * array, ArrayCompareFunction * cmpFn, void * param);
 **
 ** @note The merge sort algorithm is used.
 */
-Array * array_sortedWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+Array* array_sortedWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Lexicographically compare two arrays.
@@ -1347,12 +1240,7 @@ Array * array_sortedWithin(
 ** @note Like `strcmp`, if one of the array is the prefix of the other, the
 **       shorter array is considered less than the longer one.
 */
-int array_compare(
-    const Array * lhs,
-    const Array * rhs,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+int array_compare(const Array* lhs, const Array* rhs, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Lexicographically compare two arrays byte by byte using `memcmp`.
@@ -1366,7 +1254,7 @@ int array_compare(
 ** @note Like `strcmp`, if one of the array is the prefix of the other, the
 **       shorter array is considered less than the longer one.
 */
-int array_compareBytes(const Array * lhs, const Array * rhs);
+int array_compareBytes(const Array* lhs, const Array* rhs);
 
 /*
 ** Lexicographically compare an array with a buffer.
@@ -1386,13 +1274,7 @@ int array_compareBytes(const Array * lhs, const Array * rhs);
 ** @note `rhs` must point to a buffer of at least `size * array_dataSize(lhs)`
 **       bytes.
 */
-int array_compareData(
-    const Array * lhs,
-    const void * rhs,
-    size_t size,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+int array_compareData(const Array* lhs, const void* rhs, size_t size, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Append the elements of another array to the end of the array.
@@ -1411,7 +1293,7 @@ int array_compareData(
 **       the function works with two arrays of different types that have the
 **       same data size, it may not work as intended.
 */
-int array_extend(Array * array, const Array * other);
+int array_extend(Array* array, const Array* other);
 
 /*
 ** Concatenate two arrays into a new one.
@@ -1435,9 +1317,7 @@ int array_extend(Array * array, const Array * other);
 **       be replaced by the default one. (see `struct s_array_factory` for more
 **       details).
 */
-Array * array_concat(
-    const Array * lhs, const Array * rhs, const ArrayFactory * factory
-);
+Array* array_concat(const Array* lhs, const Array* rhs, const ArrayFactory* factory);
 
 /*
 ** Check if all elements of the array are equal to a value.
@@ -1451,7 +1331,7 @@ Array * array_concat(
 ** @note This is equivalent to `array_allWithin(array, 0, array_size(array),
 **       value)`.
 */
-bool array_all(const Array * array, const void * value);
+bool array_all(const Array* array, const void* value);
 
 /*
 ** Check if all elements of the array satisfy a predicate function.
@@ -1467,9 +1347,7 @@ bool array_all(const Array * array, const void * value);
 ** @note This is equivalent to `array_allWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-bool array_allIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+bool array_allIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Check if all elements of a specified range within the array are equal to a
@@ -1490,9 +1368,7 @@ bool array_allIf(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-int array_allWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+int array_allWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Check if all elements of a specified range within the array satisfy a
@@ -1513,13 +1389,7 @@ int array_allWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-int array_allWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+int array_allWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Check if at least one element of the array is equal to a value.
@@ -1534,7 +1404,7 @@ int array_allWithinIf(
 ** @note This is equivalent to `array_anyWithin(array, 0, array_size(array),
 **       value)`.
 */
-bool array_any(const Array * array, const void * value);
+bool array_any(const Array* array, const void* value);
 
 /*
 ** Check if at least one element of the array satisfies a predicate function.
@@ -1550,9 +1420,7 @@ bool array_any(const Array * array, const void * value);
 ** @note This is equivalent to `array_anyWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-bool array_anyIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+bool array_anyIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Check if at least one element of a specified range within the array is equal
@@ -1573,9 +1441,7 @@ bool array_anyIf(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-int array_anyWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+int array_anyWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Check if at least one element of a specified range within the array satisfies
@@ -1597,13 +1463,7 @@ int array_anyWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-int array_anyWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+int array_anyWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Check if no element of the array is equal to a value.
@@ -1617,7 +1477,7 @@ int array_anyWithinIf(
 ** @note This is equivalent to `array_noneWithin(array, 0, array_size(array),
 **       value)`.
 */
-bool array_none(const Array * array, const void * value);
+bool array_none(const Array* array, const void* value);
 
 /*
 ** Check if no element of the array satisfies a predicate function.
@@ -1633,9 +1493,7 @@ bool array_none(const Array * array, const void * value);
 ** @note This is equivalent to `array_noneWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-bool array_noneIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+bool array_noneIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Check if no element of a specified range within the array is equal to a
@@ -1656,9 +1514,7 @@ bool array_noneIf(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-int array_noneWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+int array_noneWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Check if no element of a specified range within the array satisfies a
@@ -1679,13 +1535,7 @@ int array_noneWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-int array_noneWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+int array_noneWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Fill the array with a value.
@@ -1703,7 +1553,7 @@ int array_noneWithinIf(
 ** @note This is equivalent to `array_fillWithin(array, 0, array_size(array),
 **       value)`.
 */
-int array_fill(Array * array, const void * value);
+int array_fill(Array* array, const void* value);
 
 /*
 ** Fill a range within the array with a value.
@@ -1724,9 +1574,7 @@ int array_fill(Array * array, const void * value);
 ** @note `value` must point to a buffer of at least `array_dataSize(array)`
 **       bytes.
 */
-int array_fillWithin(
-    Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+int array_fillWithin(Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Copy the elements of a buffer to the array.
@@ -1748,7 +1596,7 @@ int array_fillWithin(
 ** @note This is equivalent to `array_copyWithin(array, 0, array_size(array),
 **       values, count)`.
 */
-int array_copy(Array * array, const void * values, size_t count);
+int array_copy(Array* array, const void* values, size_t count);
 
 /*
 ** Copy the elements of a buffer to a range within the array.
@@ -1773,13 +1621,7 @@ int array_copy(Array * array, const void * values, size_t count);
 **       overwrite the elements from the beginning, and copy as many elements as
 **       possible, up to `count` (its behavior can be compared to `strncpy`).
 */
-int array_copyWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    const void * values,
-    size_t count
-);
+int array_copyWithin(Array* array, ptrdiff_t from, ptrdiff_t to, const void* values, size_t count);
 
 /*
 ** Remove the elements of the array that are equal to a value.
@@ -1793,7 +1635,7 @@ int array_copyWithin(
 ** @note This is equivalent to `array_filterWithin(array, 0, array_size(array),
 **       value)`.
 */
-void array_filter(Array * array, const void * value);
+void array_filter(Array* array, const void* value);
 
 /*
 ** Remove the elements of the array that satisfy a predicate function.
@@ -1806,9 +1648,7 @@ void array_filter(Array * array, const void * value);
 ** @note This is equivalent to `array_filterWithinIf(array, 0,
 **       array_size(array), predFn, param)`.
 */
-void array_filterIf(
-    Array * array, ArrayPredicateFunction * predFn, void * param
-);
+void array_filterIf(Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Remove the elements of a specified range within the array that are equal to a
@@ -1830,9 +1670,7 @@ void array_filterIf(
 **       bytes.
 ** @note `memcmp` will be used to compare the elements.
 */
-int array_filterWithin(
-    Array * array, ptrdiff_t from, ptrdiff_t t, const void * value
-);
+int array_filterWithin(Array* array, ptrdiff_t from, ptrdiff_t t, const void* value);
 
 /*
 ** Remove the elements of a specified range within the array that satisfy
@@ -1852,13 +1690,7 @@ int array_filterWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-int array_filterWithinIf(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+int array_filterWithinIf(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Create a new array resulting from the removal of the elements of the array
@@ -1877,7 +1709,7 @@ int array_filterWithinIf(
 **       bytes.
 ** @note `memcmp` will be used to compare the elements.
 */
-Array * array_filtered(const Array * array, const void * value);
+Array* array_filtered(const Array* array, const void* value);
 
 /*
 ** Create a new array resulting from the removal of the elements of the array
@@ -1897,9 +1729,7 @@ Array * array_filtered(const Array * array, const void * value);
 ** @note This is equivalent to `array_filteredWithinIf(array, 0,
 **       array_size(array), predFn, param)`.
 */
-Array * array_filteredIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+Array* array_filteredIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Create a new array resulting from the removal of the elements of a
@@ -1922,9 +1752,7 @@ Array * array_filteredIf(
 **       bytes.
 ** @note `memcmp` will be used to compare the elements.
 */
-Array * array_filteredWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+Array* array_filteredWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Create a new array resulting from the removal of the elements of a
@@ -1945,13 +1773,8 @@ Array * array_filteredWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 */
-Array * array_filteredWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+Array* array_filteredWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                              void* param);
 
 /*
 ** Replace every occurrence of a value in the array with another value.
@@ -1971,7 +1794,7 @@ Array * array_filteredWithinIf(
 ** @note This is equivalent to `array_replaceWithin(array, 0, array_size(array),
 **       oldValue, newValue)`.
 */
-int array_replace(Array * array, const void * oldValue, const void * newValue);
+int array_replace(Array* array, const void* oldValue, const void* newValue);
 
 /*
 ** Replace all elements of the array that satisfy a predicate function with
@@ -1993,12 +1816,7 @@ int array_replace(Array * array, const void * oldValue, const void * newValue);
 ** @note This is equivalent to `array_replaceWithinIf(array, 0,
 **       array_size(array), predFn, param, newValue)`.
 */
-int array_replaceIf(
-    Array * array,
-    ArrayPredicateFunction * predFn,
-    void * param,
-    const void * newValue
-);
+int array_replaceIf(Array* array, ArrayPredicateFunction* predFn, void* param, const void* newValue);
 
 /*
 ** Replace every occurrence of a value of a specified range within the array
@@ -2022,13 +1840,7 @@ int array_replaceIf(
 ** @note `oldValue` and `newValue` must point to a buffer of at least
 **       `array_dataSize(array)` bytes.
 */
-int array_replaceWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    const void * oldValue,
-    const void * newValue
-);
+int array_replaceWithin(Array* array, ptrdiff_t from, ptrdiff_t to, const void* oldValue, const void* newValue);
 
 /*
 ** Replace all elements of a specified range within the array that satisfy a
@@ -2053,14 +1865,8 @@ int array_replaceWithin(
 ** @note `newValue` must point to a buffer of at least `array_dataSize(array)`
 **       bytes.
 */
-int array_replaceWithinIf(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param,
-    const void * newValue
-);
+int array_replaceWithinIf(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param,
+                          const void* newValue);
 
 /*
 ** Create a new array resulting from the replacement of every occurrence of a
@@ -2083,9 +1889,7 @@ int array_replaceWithinIf(
 ** @note This is equivalent to `array_replacedWithin(array, 0,
 ** array_size(array), oldValue, newValue)`.
 */
-Array * array_replaced(
-    const Array * array, const void * oldValue, const void * newValue
-);
+Array* array_replaced(const Array* array, const void* oldValue, const void* newValue);
 
 /*
 ** Create a new array resulting from the replacement of all elements of the
@@ -2104,12 +1908,7 @@ Array * array_replaced(
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 ** @throws - `ARR_ECPYCTORFAIL` if the copy constructor failed.
 */
-Array * array_replacedIf(
-    const Array * array,
-    ArrayPredicateFunction * predFn,
-    void * param,
-    const void * newValue
-);
+Array* array_replacedIf(const Array* array, ArrayPredicateFunction* predFn, void* param, const void* newValue);
 
 /*
 ** Create a new array resulting from the replacement of every occurrence of a
@@ -2135,13 +1934,8 @@ Array * array_replacedIf(
 ** @note `oldValue` and `newValue` must point to a buffer of at least
 **       `array_dataSize(array)` bytes.
 */
-Array * array_replacedWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    const void * oldValue,
-    const void * newValue
-);
+Array* array_replacedWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* oldValue,
+                            const void* newValue);
 
 /*
 ** Create a new array resulting from the replacement of every occurrence of a
@@ -2166,21 +1960,15 @@ Array * array_replacedWithin(
 ** @throws - `ARR_ERANGE` if the range is out of range.
 ** @throws - `ARR_ECPYCTORFAIL` if the copy constructor failed.
 */
-Array * array_replacedWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param,
-    const void * newValue
-);
+Array* array_replacedWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                              void* param, const void* newValue);
 
 /*
 ** Reverse the elements of the array.
 **
 ** @param array The array.
 */
-void array_reverse(Array * array);
+void array_reverse(Array* array);
 
 /*
 ** Reverse the elements of a specified range within the array.
@@ -2196,7 +1984,7 @@ void array_reverse(Array * array);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-int array_reverseWithin(Array * array, ptrdiff_t from, ptrdiff_t to);
+int array_reverseWithin(Array* array, ptrdiff_t from, ptrdiff_t to);
 
 /*
 ** Create a new array resulting from the reversal of the elements of the array.
@@ -2209,7 +1997,7 @@ int array_reverseWithin(Array * array, ptrdiff_t from, ptrdiff_t to);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 */
-Array * array_reversed(const Array * array);
+Array* array_reversed(const Array* array);
 
 /*
 ** Create a new array resulting from the reversal of the elements of a specified
@@ -2228,7 +2016,7 @@ Array * array_reversed(const Array * array);
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-Array * array_reversedWithin(const Array * array, ptrdiff_t from, ptrdiff_t to);
+Array* array_reversedWithin(const Array* array, ptrdiff_t from, ptrdiff_t to);
 
 /*
 ** Find the first occurrence of a value in the array.
@@ -2243,7 +2031,7 @@ Array * array_reversedWithin(const Array * array, ptrdiff_t from, ptrdiff_t to);
 ** @note This is equivalent to `array_findWithin(array, 0, array_size(array),
 **       value)`.
 */
-void * array_find(Array * array, const void * value);
+void* array_find(Array* array, const void* value);
 
 /*
 ** Find the first occurrence of a value in the array.
@@ -2259,7 +2047,7 @@ void * array_find(Array * array, const void * value);
 ** @note This is equivalent to `array_cFindWithin(array, 0, array_size(array),
 **       value)`.
 */
-const void * array_cFind(const Array * array, const void * value);
+const void* array_cFind(const Array* array, const void* value);
 
 /*
 ** Find the last occurrence of a value in the array.
@@ -2274,7 +2062,7 @@ const void * array_cFind(const Array * array, const void * value);
 ** @note This is equivalent to `array_rFindWithin(array, 0, array_size(array),
 **       value)`.
 */
-void * array_rFind(Array * array, const void * value);
+void* array_rFind(Array* array, const void* value);
 
 /*
 ** Find the last occurrence of a value in the array.
@@ -2290,7 +2078,7 @@ void * array_rFind(Array * array, const void * value);
 ** @note This is equivalent to `array_crFindWithin(array, 0, array_size(array),
 **       value)`.
 */
-const void * array_crFind(const Array * array, const void * value);
+const void* array_crFind(const Array* array, const void* value);
 
 /*
 ** Find the first element of the array that satisfies a predicate function.
@@ -2306,8 +2094,7 @@ const void * array_crFind(const Array * array, const void * value);
 ** @note This is equivalent to `array_findWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-void *
-array_findIf(Array * array, ArrayPredicateFunction * predFn, void * param);
+void* array_findIf(Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /* Find the first element of the array that satisfies a predicate function.
 **
@@ -2323,9 +2110,7 @@ array_findIf(Array * array, ArrayPredicateFunction * predFn, void * param);
 ** @note This is equivalent to `array_cFindWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-const void * array_cFindIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+const void* array_cFindIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the last element of the array that satisfies a predicate function.
@@ -2341,8 +2126,7 @@ const void * array_cFindIf(
 ** @note This is equivalent to `array_rFindWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-void *
-array_rFindIf(Array * array, ArrayPredicateFunction * predFn, void * param);
+void* array_rFindIf(Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the last element of the array that satisfies a predicate function.
@@ -2359,9 +2143,7 @@ array_rFindIf(Array * array, ArrayPredicateFunction * predFn, void * param);
 ** @note This is equivalent to `array_crFindWithinIf(array, 0,
 **       array_size(array), predFn, param)`.
 */
-const void * array_crFindIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+const void* array_crFindIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the first occurrence of a value in a specified range within the array.
@@ -2381,9 +2163,7 @@ const void * array_crFindIf(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-void * array_findWithin(
-    Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+void* array_findWithin(Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the first occurrence of a value in a specified range within the array.
@@ -2404,9 +2184,7 @@ void * array_findWithin(
 ** @note The function will use `memcmp` to compare the elements.
 ** @note This is the const version of `array_findWithin`.
 */
-const void * array_cFindWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+const void* array_cFindWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the last occurrence of a value in a specified range within the array.
@@ -2426,9 +2204,7 @@ const void * array_cFindWithin(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-void * array_rFindWithin(
-    Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+void* array_rFindWithin(Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the last occurrence of a value in a specified range within the array.
@@ -2449,9 +2225,7 @@ void * array_rFindWithin(
 ** @note The function will use `memcmp` to compare the elements.
 ** @note This is the const version of `array_rFindWithin`.
 */
-const void * array_crFindWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+const void* array_crFindWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the first element of the array that satisfies a predicate function in a
@@ -2472,13 +2246,7 @@ const void * array_crFindWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-void * array_findWithinIf(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+void* array_findWithinIf(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the first element of the array that satisfies a predicate function in a
@@ -2501,13 +2269,8 @@ void * array_findWithinIf(
 **
 ** @note This is the const version of `array_findWithinIf`.
 */
-const void * array_cFindWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+const void* array_cFindWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                                void* param);
 
 /*
 ** Find the last element of the array that satisfies a predicate function in a
@@ -2528,13 +2291,7 @@ const void * array_cFindWithinIf(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-void * array_rFindWithinIf(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+void* array_rFindWithinIf(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the last element of the array that satisfies a predicate function in a
@@ -2557,13 +2314,8 @@ void * array_rFindWithinIf(
 **
 ** @note This is the const version of `array_rFindWithinIf`.
 */
-const void * array_crFindWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+const void* array_crFindWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                                 void* param);
 
 /*
 ** Find the index of the first occurrence of a value in the array.
@@ -2578,7 +2330,7 @@ const void * array_crFindWithinIf(
 ** @note This is equivalent to `array_indexWithin(array, 0, array_size(array),
 **       value)`.
 */
-ptrdiff_t array_index(const Array * array, const void * value);
+ptrdiff_t array_index(const Array* array, const void* value);
 
 /*
 ** Find the index of the last occurrence of a value in the array.
@@ -2593,7 +2345,7 @@ ptrdiff_t array_index(const Array * array, const void * value);
 ** @note This is equivalent to `array_rIndexWithin(array, 0, array_size(array),
 **       value)`.
 */
-ptrdiff_t array_rIndex(const Array * array, const void * value);
+ptrdiff_t array_rIndex(const Array* array, const void* value);
 
 /*
 ** Find the index of the first element of the array that satisfies a predicate
@@ -2610,9 +2362,7 @@ ptrdiff_t array_rIndex(const Array * array, const void * value);
 ** @note This is equivalent to `array_indexWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-ptrdiff_t array_indexIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+ptrdiff_t array_indexIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the index of the last element of the array that satisfies a predicate
@@ -2629,9 +2379,7 @@ ptrdiff_t array_indexIf(
 ** @note This is equivalent to `array_rIndexWithinIf(array, 0,
 **       array_size(array), predFn, param)`.
 */
-ptrdiff_t array_rIndexIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+ptrdiff_t array_rIndexIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Find the index of the first occurrence of a value in a specified range within
@@ -2652,9 +2400,7 @@ ptrdiff_t array_rIndexIf(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-ptrdiff_t array_indexWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+ptrdiff_t array_indexWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the index of the last occurrence of a value in a specified range within
@@ -2675,9 +2421,7 @@ ptrdiff_t array_indexWithin(
 **
 ** @note The function will use `memcmp` to compare the elements.
 */
-ptrdiff_t array_rIndexWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+ptrdiff_t array_rIndexWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Find the index of the first element of the array that satisfies a predicate
@@ -2698,13 +2442,8 @@ ptrdiff_t array_rIndexWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-ptrdiff_t array_indexWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+ptrdiff_t array_indexWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                              void* param);
 
 /*
 ** Find the index of the last element of the array that satisfies a predicate
@@ -2725,13 +2464,8 @@ ptrdiff_t array_indexWithinIf(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is out of range.
 */
-ptrdiff_t array_rIndexWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+ptrdiff_t array_rIndexWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn,
+                               void* param);
 
 /*
 ** Rotate the elements of the array.
@@ -2748,7 +2482,7 @@ ptrdiff_t array_rIndexWithinIf(
 ** @note This is equivalent to `array_rotateWithin(array, 0, array_size(array),
 **       n)`.
 */
-int array_rotate(Array * array, ptrdiff_t n);
+int array_rotate(Array* array, ptrdiff_t n);
 
 /*
 ** Rotate the elements of a specified range within the array.
@@ -2767,9 +2501,7 @@ int array_rotate(Array * array, ptrdiff_t n);
 ** @throws - `ARR_ERANGE` if the range is out of range.
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 */
-int array_rotateWithin(
-    Array * array, ptrdiff_t from, ptrdiff_t to, ptrdiff_t n
-);
+int array_rotateWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ptrdiff_t n);
 
 /*
 ** Create a new array resulting from the rotation of the elements of the array.
@@ -2787,7 +2519,7 @@ int array_rotateWithin(
 ** @note This is equivalent to `array_rotatedWithin(array, 0, array_size(array),
 **       n)`.
 */
-Array * array_rotated(const Array * array, ptrdiff_t n);
+Array* array_rotated(const Array* array, ptrdiff_t n);
 
 /*
 ** Create a new array resulting from the rotation of the elements of a specified
@@ -2808,9 +2540,7 @@ Array * array_rotated(const Array * array, ptrdiff_t n);
 ** @throws - `ARR_ERANGE` if the range is out of range.
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 */
-Array * array_rotatedWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, ptrdiff_t n
-);
+Array* array_rotatedWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ptrdiff_t n);
 
 /*
 ** Slice the array in place.
@@ -2826,7 +2556,7 @@ Array * array_rotatedWithin(
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the slice is out of range.
 */
-int array_slice(Array * array, ptrdiff_t from, ptrdiff_t to);
+int array_slice(Array* array, ptrdiff_t from, ptrdiff_t to);
 
 /*
 ** Get a slice of the array.
@@ -2844,7 +2574,7 @@ int array_slice(Array * array, ptrdiff_t from, ptrdiff_t to);
 ** @throws - `ARR_ERANGE` if the slice is out of range.
 ** @throws - `ARR_ENOMEM` if memory allocation failed.
 */
-Array * array_sliced(const Array * array, ptrdiff_t from, ptrdiff_t to);
+Array* array_sliced(const Array* array, ptrdiff_t from, ptrdiff_t to);
 
 /*
 ** Get the number of occurrences of a value in the array.
@@ -2858,7 +2588,7 @@ Array * array_sliced(const Array * array, ptrdiff_t from, ptrdiff_t to);
 ** @note This is equivalent to `array_countWithin(array, 0, array_size(array),
 **       value)`.
 */
-int array_count(const Array * array, const void * value);
+int array_count(const Array* array, const void* value);
 
 /*
 ** Get the number of elements of the array that satisfy a predicate function.
@@ -2874,9 +2604,7 @@ int array_count(const Array * array, const void * value);
 ** @note This is equivalent to `array_countWithinIf(array, 0, array_size(array),
 **       predFn, param)`.
 */
-int array_countIf(
-    const Array * array, ArrayPredicateFunction * predFn, void * param
-);
+int array_countIf(const Array* array, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Get the number of occurrences of a value in a specified range within the
@@ -2893,9 +2621,7 @@ int array_countIf(
 **
 ** @note `memcmp` will be used to compare the elements.
 */
-int array_countWithin(
-    const Array * array, ptrdiff_t from, ptrdiff_t to, const void * value
-);
+int array_countWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, const void* value);
 
 /*
 ** Get the number of elements of the array that satisfy a predicate function in
@@ -2913,13 +2639,7 @@ int array_countWithin(
 ** @return The number of elements that satisfy the predicate function in the
 **         range.
 */
-int array_countWithinIf(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayPredicateFunction * predFn,
-    void * param
-);
+int array_countWithinIf(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayPredicateFunction* predFn, void* param);
 
 /*
 ** Get the minimum element of the array.
@@ -2938,7 +2658,7 @@ int array_countWithinIf(
 ** @note This is equivalent to `array_minWithin(array, 0, array_size(array),
 **       cmpFn, param)`.
 */
-void * array_min(Array * array, ArrayCompareFunction * cmpFn, void * param);
+void* array_min(Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the minimum element of the array.
@@ -2958,8 +2678,7 @@ void * array_min(Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @note This is equivalent to `array_cMinWithin(array, 0, array_size(array),
 **       cmpFn, param)`.
 */
-const void *
-array_cMin(const Array * array, ArrayCompareFunction * cmpFn, void * param);
+const void* array_cMin(const Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the minimum element of a specified range within the array.
@@ -2979,13 +2698,7 @@ array_cMin(const Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is empty.
 */
-void * array_minWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+void* array_minWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the minimum element of a specified range within the array.
@@ -3007,13 +2720,8 @@ void * array_minWithin(
 **
 ** @note This is the const version of `array_minWithin`.
 */
-const void * array_cMinWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+const void* array_cMinWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn,
+                             void* param);
 
 /*
 ** Get the index of the minimum element of the array.
@@ -3032,8 +2740,7 @@ const void * array_cMinWithin(
 ** @note This is equivalent to `array_minIndexWithin(array, 0,
 **       array_size(array), cmpFn, param)`.
 */
-ptrdiff_t
-array_minIndex(const Array * array, ArrayCompareFunction * cmpFn, void * param);
+ptrdiff_t array_minIndex(const Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the index of the minimum element of a specified range within the array.
@@ -3053,13 +2760,8 @@ array_minIndex(const Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is empty.
 */
-ptrdiff_t array_minIndexWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+ptrdiff_t array_minIndexWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn,
+                               void* param);
 
 /*
 ** Get the maximum element of the array.
@@ -3078,7 +2780,7 @@ ptrdiff_t array_minIndexWithin(
 ** @note This is equivalent to `array_maxWithin(array, 0, array_size(array),
 **       cmpFn, param)`.
 */
-void * array_max(Array * array, ArrayCompareFunction * cmpFn, void * param);
+void* array_max(Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the maximum element of the array.
@@ -3098,8 +2800,7 @@ void * array_max(Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @note This is equivalent to `array_cMaxWithin(array, 0, array_size(array),
 **       cmpFn, param)`.
 */
-const void *
-array_cMax(const Array * array, ArrayCompareFunction * cmpFn, void * param);
+const void* array_cMax(const Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the maximum element of a specified range within the array.
@@ -3119,13 +2820,7 @@ array_cMax(const Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is empty.
 */
-void * array_maxWithin(
-    Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+void* array_maxWithin(Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the maximum element of a specified range within the array.
@@ -3147,13 +2842,8 @@ void * array_maxWithin(
 **
 ** @note This is the const version of `array_maxWithin`.
 */
-const void * array_cMaxWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+const void* array_cMaxWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn,
+                             void* param);
 
 /*
 ** Get the index of the maximum element of the array.
@@ -3172,8 +2862,7 @@ const void * array_cMaxWithin(
 ** @note This is equivalent to `array_maxIndexWithin(array, 0,
 **       array_size(array), cmpFn, param)`.
 */
-ptrdiff_t
-array_maxIndex(const Array * array, ArrayCompareFunction * cmpFn, void * param);
+ptrdiff_t array_maxIndex(const Array* array, ArrayCompareFunction* cmpFn, void* param);
 
 /*
 ** Get the index of the maximum element of a specified range within the array.
@@ -3193,12 +2882,7 @@ array_maxIndex(const Array * array, ArrayCompareFunction * cmpFn, void * param);
 ** @throws Error codes (accessed via `array_errno`):
 ** @throws - `ARR_ERANGE` if the range is empty.
 */
-ptrdiff_t array_maxIndexWithin(
-    const Array * array,
-    ptrdiff_t from,
-    ptrdiff_t to,
-    ArrayCompareFunction * cmpFn,
-    void * param
-);
+ptrdiff_t array_maxIndexWithin(const Array* array, ptrdiff_t from, ptrdiff_t to, ArrayCompareFunction* cmpFn,
+                               void* param);
 
 #endif
