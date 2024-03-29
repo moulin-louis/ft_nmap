@@ -72,6 +72,7 @@ static void ArrayFn_hostsDestructor(unused Array* arr, void* data, size_t n) {
 
 static int ArrayFn_mapPortNumToHostPort(unused const Array* arr, unused size_t i, void* dst, const void* src,
                                         unused void* param) {
+  memset(dst, 0, sizeof(t_port));
   ((t_port*)dst)->port = *(uint16_t*)src;
   return 0;
 }
@@ -79,6 +80,7 @@ static int ArrayFn_mapPortNumToHostPort(unused const Array* arr, unused size_t i
 static int ArrayFn_mapIpToHost(unused const Array* arr, unused size_t i, void* dst, const void* src, void* param) {
   t_host* const host = dst;
 
+  memset(host, 0, sizeof(t_host));
   host->ip = *(struct in_addr*)src;
   host->ports = array_cMap(param, sizeof(t_port), NULL, ArrayFn_mapPortNumToHostPort, NULL);
   if (!host->ports)
@@ -298,7 +300,7 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
   const struct tcphdr* tcp_tmp = (struct tcphdr*)payload;
   const NMAP_PortStatus result = tcp_syn_analysis(ip_tmp, payload);
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
-    t_host* host = *(t_host**)array_get(us->hosts, i);
+    t_host* host = array_get(us->hosts, i);
     if (host->ip.s_addr != ip_src.s_addr)
       continue;
     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
@@ -359,7 +361,7 @@ int64_t init_sniffer(NMAP_UltraScan* us) {
     else
       strcat(dst_hosts, " or ");
     strcat(dst_hosts, "src host ");
-    const t_host* host = *(const t_host**)array_cGet(us->hosts, targetno);
+    const t_host* host = array_cGet(us->hosts, targetno);
     const char* str = inet_ntoa(host->ip);
     strcat(dst_hosts, str);
   }
