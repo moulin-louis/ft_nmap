@@ -37,7 +37,7 @@ typedef struct s_worker_setup_param {
   const Array* const ports;
 } WorkerSetupParam;
 
-static int setupWorkerOptions(Array* arr, size_t i, void* value, void* param) {
+static int ArrayFn_setupWorkerOptions(Array* arr, size_t i, void* value, void* param) {
   (void)arr, (void)i;
   WorkerSetupParam* const setup = param;
   NMAP_WorkerData* const worker = value;
@@ -57,7 +57,7 @@ static int setupWorkerOptions(Array* arr, size_t i, void* value, void* param) {
   return 0;
 }
 
-static int cancelWorkerThread(const Array* arr, size_t i, const void* value, void* param) {
+static int ArrayFn_cancelWorkerThread(const Array* arr, size_t i, const void* value, void* param) {
   (void)arr, (void)i, (void)param;
   const NMAP_WorkerData* const worker = value;
 
@@ -65,7 +65,7 @@ static int cancelWorkerThread(const Array* arr, size_t i, const void* value, voi
   return 0;
 }
 
-static int joinWorkerThread(Array* arr, size_t i, void* value, void* param) {
+static int ArrayFn_joinWorkerThread(Array* arr, size_t i, void* value, void* param) {
   (void)arr, (void)i;
 
   bool* const threadError = param;
@@ -84,13 +84,13 @@ static int joinWorkerThread(Array* arr, size_t i, void* value, void* param) {
   return 0;
 }
 
-int spawnWorkerThread(Array* arr, size_t i, void* value, void* param) {
+static int ArrayFn_spawnWorkerThread(Array* arr, size_t i, void* value, void* param) {
   (void)param;
   NMAP_WorkerData* const worker = value;
 
   if (pthread_create(&worker->thread, NULL, NMAP_workerMain, &worker->options)) {
-    array_cForEachWithin(arr, 0, i, cancelWorkerThread, NULL);
-    array_forEachWithin(arr, 0, i, joinWorkerThread, NULL);
+    array_cForEachWithin(arr, 0, i, ArrayFn_cancelWorkerThread, NULL);
+    array_forEachWithin(arr, 0, i, ArrayFn_joinWorkerThread, NULL);
     perror("ft_nmap: failed to spawn a thread");
     return 1;
   }
@@ -119,12 +119,12 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   }
   on_exit(destroyWorkers, workers);
 
-  if (array_forEach(workers, setupWorkerOptions, &setup) || array_forEach(workers, spawnWorkerThread, NULL))
+  if (array_forEach(workers, ArrayFn_setupWorkerOptions, &setup) || array_forEach(workers, spawnWorkerThread, NULL))
     return NMAP_FAILURE;
 
   bool threadError = false;
 
-  array_forEach(workers, joinWorkerThread, &threadError);
+  array_forEach(workers, ArrayFn_joinWorkerThread, &threadError);
 
   if (threadError)
     return NMAP_FAILURE;
