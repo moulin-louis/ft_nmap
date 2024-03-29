@@ -160,7 +160,7 @@ typedef int ArrayCompareFunction(const void* lhs, const void* rhs, void* param);
 **
 ** @return `true` if the predicate is satisfied, `false` otherwise.
 */
-typedef bool ArrayPredicateFunction(const Array* array, size_t i, const void* value, const void* param);
+typedef bool ArrayPredicateFunction(const Array* array, size_t i, const void* value, void* param);
 
 struct s_array_factory {
   // The allocator function (by default, `malloc`)

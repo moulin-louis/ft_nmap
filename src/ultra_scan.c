@@ -51,36 +51,36 @@ void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
     us->timeout = us->maxTimeout;
 }
 
-/**
- * @brief Check if there is any host with pending ports.
- * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
- * @return {bool} - true if there is a host with pending ports, false otherwise.
- */
-bool old_us_hasIncompleteHosts(NMAP_UltraScan* us) {
-  for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
-    const t_host* host = *(t_host**)array_get(us->hosts, i);
-    if (old_host_hasPortLeft(host))
-      return true;
-  }
-  return false;
-}
+// /**
+//  * @brief Check if there is any host with pending ports.
+//  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
+//  * @return {bool} - true if there is a host with pending ports, false otherwise.
+//  */
+// bool old_us_hasIncompleteHosts(NMAP_UltraScan* us) {
+//   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
+//     const t_host* host = *(t_host**)array_get(us->hosts, i);
+//     if (old_host_hasPortLeft(host))
+//       return true;
+//   }
+//   return false;
+// }
 
-static void ArrayFn_hostsDestructor(Array* arr, void* data, size_t n) {
+static void ArrayFn_hostsDestructor(unused Array* arr, void* data, size_t n) {
   for (size_t i = 0; i < n; ++i)
     array_destroy(((t_host*)data)[i].ports);
 }
 
-static int ArrayFn_mapPortNumToHostPort(const Array* arr, size_t i, void* dst, const void* src, void* param) {
+static int ArrayFn_mapPortNumToHostPort(unused const Array* arr, unused size_t i, void* dst, const void* src,
+                                        unused void* param) {
   ((t_port*)dst)->port = *(uint16_t*)src;
   return 0;
 }
 
-static int ArrayFn_mapIpToHost(const Array* arr, size_t i, void* dst, const void* src, void* param) {
-  const Array* const ports = param;
+static int ArrayFn_mapIpToHost(unused const Array* arr, unused size_t i, void* dst, const void* src, void* param) {
   t_host* const host = dst;
 
   host->ip = *(struct in_addr*)src;
-  host->ports = array_cMap(ports, sizeof(t_port), NULL, ArrayFn_mapPortNumToHostPort, NULL);
+  host->ports = array_cMap(param, sizeof(t_port), NULL, ArrayFn_mapPortNumToHostPort, NULL);
   if (!host->ports)
     return 1;
   return 0;
@@ -98,40 +98,40 @@ int64_t us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) 
     .destructor = ArrayFn_hostsDestructor,
   };
 
-  us->hosts = array_cMap(ips, sizeof(t_host), &us_hostsFactory, ArrayFn_mapIpToHost, ports);
+  us->hosts = array_cMap(ips, sizeof(t_host), &us_hostsFactory, ArrayFn_mapIpToHost, (void*)ports);
   if (!us->hosts)
     return 1;
   return 0;
 }
 
-int64_t old_us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) {
-  us->hosts = array(sizeof(t_host*), 0, 0, NULL, NULL);
-  if (us->hosts == NULL)
-    return 1;
-  for (uint64_t i = 0; i < array_size(ips); ++i) {
-    t_host* host = calloc(1, sizeof(t_host));
-    if (host == NULL) {
-      perror("calloc/us_createHost/host");
-      array_destroy(us->hosts);
-      return 1;
-    }
-    printf("host ptr = %p\n", host);
-    host->ip = *(struct in_addr*)array_cGet(ips, i);
-    host->ports = array(sizeof(t_port), 0, 0, NULL, NULL);
-    if (host->ports == NULL) {
-      perror("calloc/us_createHost/ports");
-      array_destroy(us->hosts);
-      return 1;
-    }
-    for (uint64_t j = 0; j < array_size(ports); ++j) {
-      t_port port = {0};
-      port.port = *(uint16_t*)array_cGet(ports, j);
-      array_pushBack(host->ports, &port, 1);
-    }
-    array_pushFront(us->hosts, &host, 1);
-  }
-  return 0;
-}
+// int64_t old_us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) {
+//   us->hosts = array(sizeof(t_host*), 0, 0, NULL, NULL);
+//   if (us->hosts == NULL)
+//     return 1;
+//   for (uint64_t i = 0; i < array_size(ips); ++i) {
+//     t_host* host = calloc(1, sizeof(t_host));
+//     if (host == NULL) {
+//       perror("calloc/us_createHost/host");
+//       array_destroy(us->hosts);
+//       return 1;
+//     }
+//     printf("host ptr = %p\n", host);
+//     host->ip = *(struct in_addr*)array_cGet(ips, i);
+//     host->ports = array(sizeof(t_port), 0, 0, NULL, NULL);
+//     if (host->ports == NULL) {
+//       perror("calloc/us_createHost/ports");
+//       array_destroy(us->hosts);
+//       return 1;
+//     }
+//     for (uint64_t j = 0; j < array_size(ports); ++j) {
+//       t_port port = {0};
+//       port.port = *(uint16_t*)array_cGet(ports, j);
+//       array_pushBack(host->ports, &port, 1);
+//     }
+//     array_pushFront(us->hosts, &host, 1);
+//   }
+//   return 0;
+// }
 
 /**
  * @brief return the next host to scan and increment the nextIter.
@@ -146,13 +146,13 @@ t_host* us_nextHost(NMAP_UltraScan* us) {
   return result;
 }
 
-t_host** us_old_nextHost(NMAP_UltraScan* us) {
-  t_host** result = array_get(us->hosts, us->idxNextHosts);
-  us->idxNextHosts++;
-  if (us->idxNextHosts >= array_size(us->hosts))
-    us->idxNextHosts = 0;
-  return result;
-}
+// t_host** old_us_nextHost(NMAP_UltraScan* us) {
+//   t_host** result = array_get(us->hosts, us->idxNextHosts);
+//   us->idxNextHosts++;
+//   if (us->idxNextHosts >= array_size(us->hosts))
+//     us->idxNextHosts = 0;
+//   return result;
+// }
 
 /**
  * @brief send a probe to the next port of a given host
@@ -176,12 +176,6 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
   return 0;
 }
 
-static bool ArrayFn_portIsPending(const Array* arr, size_t i, const void* value, void* param) {
-  (void)arr, (void)i, (void)param;
-  const t_port* const port = value;
-  return port->probeStatus == PROBE_PENDING;
-}
-
 /**
  * @brief send probe to any needed target in targets.
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
@@ -191,7 +185,7 @@ int64_t doAnyNewProbe(NMAP_UltraScan* us) {
   t_host* host = us_nextHost(us);
   const t_host* unableToSend = NULL;
   while (host != NULL && host != unableToSend) {
-    if (array_anyIf(host->ports, ArrayFn_portIsPending, NULL)) {
+    if (host_hasPortPendingLeft(host)) {
       if (sendNextScanProbe(us, host))
         return 1;
       unableToSend = NULL;
@@ -203,21 +197,21 @@ int64_t doAnyNewProbe(NMAP_UltraScan* us) {
   return 0;
 }
 
-int64_t old_doAnyNewProbe(NMAP_UltraScan* us) {
-  t_host* host = *us_old_nextHost(us);
-  const t_host* unableToSend = NULL;
-  while (host != NULL && host != unableToSend) {
-    if (old_host_hasPortPendingLeft(host)) {
-      if (sendNextScanProbe(us, host))
-        return 1;
-      unableToSend = NULL;
-    }
-    else if (unableToSend == NULL)
-      unableToSend = host;
-    host = *us_old_nextHost(us);
-  }
-  return 0;
-}
+// int64_t old_doAnyNewProbe(NMAP_UltraScan* us) {
+//   t_host* host = *us_old_nextHost(us);
+//   const t_host* unableToSend = NULL;
+//   while (host != NULL && host != unableToSend) {
+//     if (old_host_hasPortPendingLeft(host)) {
+//       if (sendNextScanProbe(us, host))
+//         return 1;
+//       unableToSend = NULL;
+//     }
+//     else if (unableToSend == NULL)
+//       unableToSend = host;
+//     host = *us_old_nextHost(us);
+//   }
+//   return 0;
+// }
 
 /**
  * @brief wait for the fd of the pcap handle to be ready.
@@ -402,16 +396,9 @@ int64_t init_sniffer(NMAP_UltraScan* us) {
   return 0;
 }
 
-static bool ArrayFn_portIsLeft(const Array* arr, size_t i, const void* value, void* param) {
-  (void)arr, (void)i, (void)param;
-  const t_port* const port = value;
-  return port->probeStatus == PROBE_PENDING || port->probeStatus == PROBE_SENT;
-}
-
-static bool ArrayFn_hostHasPortLeft(const Array* arr, size_t i, const void* value, void* param) {
-  (void)arr, (void)i, (void)param;
+static bool ArrayFn_hostHasPortLeft(unused const Array* arr, unused size_t i, const void* value, unused void* param) {
   const t_host* const host = value;
-  return array_anyIf(host->ports, ArrayFn_portIsLeft, NULL);
+  return host_hasPortLeft(host);
 }
 
 /**
@@ -464,41 +451,41 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
   return 0;
 }
 
-int64_t old_ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType scanType) {
-  NMAP_UltraScan us = {0};
-  us.scanType = scanType;
+// int64_t old_ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType scanType) {
+//   NMAP_UltraScan us = {0};
+//   us.scanType = scanType;
 
-  us_default_init(&us);
-  us.sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-  if (us.sock < 0) {
-    perror("socket/ultra_scan");
-    return 1;
-  }
-  old_us_createHost(&us, ips, ports);
-  if (init_sniffer(&us)) {
-    printf("init siffer failed\n");
-    return 1;
-  }
-  while (old_us_hasIncompleteHosts(&us)) {
-    // do outstanding retransmit
-    if (old_doAnyNewProbe(&us))
-      return 1;
-    waitForResponses(&us);
-  }
-  pcap_close(us.handle);
-  close(us.sock);
-  for (uint64_t i = 0; i < array_size(us.hosts); ++i) {
-    t_host* host = *(t_host**)array_get(us.hosts, i);
-    for (uint64_t j = 0; j < array_size(host->ports); ++j) {
-      t_port* port = array_get(host->ports, j);
-      if (port->probeStatus == PROBE_SENT)
-        port->result = FILTERED;
-      if (port->result == OPEN)
-        printf("port %u = %s\n", port->port, port_status_to_string(port->result));
-    }
-    array_destroy(host->ports);
-    free(host);
-  }
-  array_destroy(us.hosts);
-  return 0;
-}
+//   us_default_init(&us);
+//   us.sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+//   if (us.sock < 0) {
+//     perror("socket/ultra_scan");
+//     return 1;
+//   }
+//   old_us_createHost(&us, ips, ports);
+//   if (init_sniffer(&us)) {
+//     printf("init siffer failed\n");
+//     return 1;
+//   }
+//   while (old_us_hasIncompleteHosts(&us)) {
+//     // do outstanding retransmit
+//     if (old_doAnyNewProbe(&us))
+//       return 1;
+//     waitForResponses(&us);
+//   }
+//   pcap_close(us.handle);
+//   close(us.sock);
+//   for (uint64_t i = 0; i < array_size(us.hosts); ++i) {
+//     t_host* host = *(t_host**)array_get(us.hosts, i);
+//     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
+//       t_port* port = array_get(host->ports, j);
+//       if (port->probeStatus == PROBE_SENT)
+//         port->result = FILTERED;
+//       if (port->result == OPEN)
+//         printf("port %u = %s\n", port->port, port_status_to_string(port->result));
+//     }
+//     array_destroy(host->ports);
+//     free(host);
+//   }
+//   array_destroy(us.hosts);
+//   return 0;
+// }

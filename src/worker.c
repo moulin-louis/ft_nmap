@@ -37,8 +37,7 @@ typedef struct s_worker_setup_param {
   const Array* const ports;
 } WorkerSetupParam;
 
-static int ArrayFn_setupWorkerOptions(Array* arr, size_t i, void* value, void* param) {
-  (void)arr, (void)i;
+static int ArrayFn_setupWorkerOptions(unused Array* arr, unused size_t i, void* value, void* param) {
   WorkerSetupParam* const setup = param;
   NMAP_WorkerData* const worker = value;
   const ptrdiff_t from = -setup->portsLeft;
@@ -57,17 +56,14 @@ static int ArrayFn_setupWorkerOptions(Array* arr, size_t i, void* value, void* p
   return 0;
 }
 
-static int ArrayFn_cancelWorkerThread(const Array* arr, size_t i, const void* value, void* param) {
-  (void)arr, (void)i, (void)param;
+static int ArrayFn_cancelWorkerThread(unused const Array* arr, unused size_t i, const void* value, unused void* param) {
   const NMAP_WorkerData* const worker = value;
 
   pthread_cancel(worker->thread);
   return 0;
 }
 
-static int ArrayFn_joinWorkerThread(Array* arr, size_t i, void* value, void* param) {
-  (void)arr, (void)i;
-
+static int ArrayFn_joinWorkerThread(unused Array* arr, unused size_t i, void* value, void* param) {
   bool* const threadError = param;
   NMAP_WorkerData* const worker = value;
 
@@ -84,8 +80,7 @@ static int ArrayFn_joinWorkerThread(Array* arr, size_t i, void* value, void* par
   return 0;
 }
 
-static int ArrayFn_spawnWorkerThread(Array* arr, size_t i, void* value, void* param) {
-  (void)param;
+static int ArrayFn_spawnWorkerThread(Array* arr, size_t i, void* value, unused void* param) {
   NMAP_WorkerData* const worker = value;
 
   if (pthread_create(&worker->thread, NULL, NMAP_workerMain, &worker->options)) {
@@ -119,7 +114,8 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   }
   on_exit(destroyWorkers, workers);
 
-  if (array_forEach(workers, ArrayFn_setupWorkerOptions, &setup) || array_forEach(workers, spawnWorkerThread, NULL))
+  if (array_forEach(workers, ArrayFn_setupWorkerOptions, &setup) ||
+      array_forEach(workers, ArrayFn_spawnWorkerThread, NULL))
     return NMAP_FAILURE;
 
   bool threadError = false;

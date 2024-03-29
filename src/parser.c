@@ -14,8 +14,7 @@ static in_addr_t dnsLookup(const char* name) {
   return ip;
 }
 
-static int ArrayFn_setUint16ToIndex(Array* arr, size_t i, void* value, void* param) {
-  (void)arr, (void)i, (void)param;
+static int ArrayFn_setUint16ToIndex(unused Array* arr, unused size_t i, void* value, unused void* param) {
   *(uint16_t*)value = i;
   return 0;
 }
