@@ -7,30 +7,17 @@
 
 // standard headers
 #include <argp.h>
-#include <arpa/inet.h>
-#include <error.h>
-#include <fcntl.h>
 #include <ifaddrs.h>
-#include <netdb.h>
 #include <netinet/ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
 #include <pthread.h>
-#include <signal.h>
-// include poll header
 #include <math.h>
 #include <poll.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
-#include <wchar.h>
 // ----------------
 
 // library headers

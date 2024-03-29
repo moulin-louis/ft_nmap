@@ -45,7 +45,6 @@ typedef struct {
 
 bool host_hasPortPendingLeft(const t_host* host);
 bool host_hasPortLeft(const t_host* host);
-
 t_port* host_nextIncPort(t_host* host);
 
 #endif // t_host_H
