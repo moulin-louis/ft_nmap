@@ -46,6 +46,4 @@ typedef struct {
   uint64_t packet_recv;
 } NMAP_UltraScan;
 
-const char* inet_ntop_ez(const struct sockaddr_storage* ss, size_t sslen);
-
 #endif // ULTRA_SCAN_H

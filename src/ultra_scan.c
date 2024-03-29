@@ -171,8 +171,25 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
     if (tcp_syn_send_probe(us, port, host->ip, us->inter_ip))
       return 1;
     break;
-  default: {
-  }
+  case NMAP_SCAN_ACK:
+    if (tcp_ack_send_probe(us, port, host->ip, us->inter_ip))
+      return 1;
+    break;
+  case NMAP_SCAN_NULL:
+    if (tcp_null_send_probe(us, port, host->ip, us->inter_ip))
+      return 1;
+    break;
+  case NMAP_SCAN_FIN:
+    if (tcp_fin_send_probe(us, port, host->ip, us->inter_ip))
+      return 1;
+    break;
+  case NMAP_SCAN_XMAS:
+    if (tcp_xmas_send_probe(us, port, host->ip, us->inter_ip))
+      return 1;
+    break;
+  default:
+    fprintf(stderr, "Unsuported scan type\n");
+    exit(4);
   }
   port->probeStatus = PROBE_SENT;
   port->nprobes_sent += 1;
@@ -264,32 +281,69 @@ int64_t read_reply_pcap(pcap_t* handle, const int64_t to_usec, const uint8_t** p
  */
 bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
   struct timeval rcvdtime;
+  struct pcap_pkthdr* head;
+  const uint8_t* packet;
 
   gettimeofday(&us->now, NULL);
   long to_usec = TIMEVAL_SUBTRACT(*stime, us->now);
   if (to_usec < 2000)
     to_usec = 2000;
-  struct pcap_pkthdr* head;
-  const uint8_t* packet;
 
   if (read_reply_pcap(us->handle, to_usec, &packet, &head, &rcvdtime))
-    return NULL;
-  struct iphdr* ip_tmp = (struct iphdr*)(packet + sizeof(struct ether_header));
+    return false;
+  struct iphdr* iphdr = (struct iphdr*)(packet + sizeof(struct ether_header));
   gettimeofday(&us->now, NULL);
-  if (ip_tmp == NULL || TIMEVAL_SUBTRACT(us->now, *stime) > us->timeout)
+  if (iphdr == NULL || TIMEVAL_SUBTRACT(us->now, *stime) > us->timeout)
     return false;
   us->packet_recv += 1;
-  const struct in_addr ip_src = *(struct in_addr*)&ip_tmp->saddr;
+  uint16_t src_port = 0;
+  const struct in_addr ip_src = *(struct in_addr*)&iphdr->saddr;
   const void* payload = (void*)(packet + sizeof(struct ether_header) + sizeof(struct iphdr));
-  const struct tcphdr* tcp_tmp = (struct tcphdr*)payload;
-  const NMAP_PortStatus result = tcp_syn_analysis(ip_tmp, payload);
+  NMAP_PortStatus result = UNKOWN;
+  switch (us->scanType) {
+  case NMAP_SCAN_SYN:
+    result = tcp_syn_analysis(iphdr, payload);
+    break;
+  case NMAP_SCAN_ACK:
+    result = tcp_ack_analysis(iphdr, payload);
+    break;
+  case NMAP_SCAN_NULL:
+    result = tcp_null_analysis(iphdr, payload);
+    break;
+  case NMAP_SCAN_FIN:
+    result = tcp_fin_analysis(iphdr, payload);
+    break;
+  case NMAP_SCAN_XMAS:
+    result = tcp_xmas_analysis(iphdr, payload);
+    break;
+  }
+  if (result == UNKOWN)
+    return false;
+  if (iphdr->protocol == IPPROTO_TCP) {
+    const struct tcphdr* tcp_tmp = (struct tcphdr*)payload;
+    src_port = ntohs(tcp_tmp->source);
+  }
+  if (iphdr->protocol == IPPROTO_ICMP) {
+    struct icmphdr* icmp_hdr = (struct icmphdr*)payload;
+    if (icmp_hdr->type == ICMP_DEST_UNREACH) {
+      struct iphdr* original_ip_hdr = (struct iphdr*)((unsigned char*)icmp_hdr + sizeof(struct icmphdr));
+      int original_ip_hdr_len = (original_ip_hdr->ihl & 0x0f) * 4;
+      if (original_ip_hdr_len < 20) {
+        printf("Invalid IP header length.\n");
+        return false;
+      }
+      struct tcphdr* original_tcp_hdr = (struct tcphdr*)((unsigned char*)original_ip_hdr + original_ip_hdr_len);
+      src_port = ntohs(original_tcp_hdr->dest);
+    }
+  }
+
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
     t_host* host = array_get(us->hosts, i);
     if (host->ip.s_addr != ip_src.s_addr)
       continue;
     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
       t_port* port = array_get(host->ports, j);
-      if (port->port != ntohs(tcp_tmp->source))
+      if (port->port != src_port)
         continue;
       port->result = result;
       port->probeStatus = PROBE_RECV;
@@ -320,7 +374,7 @@ void waitForResponses(NMAP_UltraScan* us) {
   }
 }
 
-void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
+void doAnyOustandingRetransmit(const NMAP_UltraScan* us) {
   struct timeval now;
   gettimeofday(&now, NULL);
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
@@ -328,14 +382,13 @@ void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
       t_port* port = array_get(host->ports, j);
       if (port->probeStatus == PROBE_SENT) {
-        // printf("checking port %u, %ld since sent\n", port->port, TIMEVAL_TO_MICROSC(us->now) - TIMEVAL_TO_MICROSC(port->sendTime));
         if (TIMEVAL_SUBTRACT(now, port->sendTime) > us->timeout) {
-            if (port->nprobes_sent < us->maxRetries)
-              port->probeStatus = PROBE_PENDING;
-            else {
-              port->result = FILTERED;
-              port->probeStatus = PROBE_TIMEOUT;
-            }
+          if (port->nprobes_sent < us->maxRetries)
+            port->probeStatus = PROBE_PENDING;
+          else {
+            port->result = FILTERED;
+            port->probeStatus = PROBE_TIMEOUT;
+          }
         }
       }
     }
@@ -368,7 +421,6 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
     return 1;
   }
   while (array_anyIf(us.hosts, ArrayFn_hostHasPortLeft, NULL)) {
-    // do outstanding retransmit
     doAnyOustandingRetransmit(&us);
     if (doAnyNewProbe(&us)) {
       array_destroy(us.hosts);

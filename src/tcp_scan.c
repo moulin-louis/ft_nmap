@@ -12,6 +12,58 @@ typedef struct {
   uint16_t tcp_len;
 } TCP_PseudoHeader;
 
+void tcp_craft_payload(struct tcphdr* tcp_hdr, const uint16_t port) {
+  tcp_hdr->source = htons(49152); // Source port, Likely unused port
+  tcp_hdr->dest = htons(port); // Target port
+  tcp_hdr->seq = 0;
+  tcp_hdr->syn = 1;
+  tcp_hdr->ack_seq = 0;
+  tcp_hdr->window = htons(1024);
+  tcp_hdr->doff = 5;
+}
+
+
+int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src,
+                       uint16_t tcp_flag) {
+  struct sockaddr_in dest = {0};
+  struct tcphdr tcp_hdr = {0};
+
+  dest.sin_addr = ip_dest;
+  dest.sin_port = htons(port->port);
+  dest.sin_family = AF_INET;
+  const int32_t sock = us->sock;
+  tcp_craft_payload(&tcp_hdr, port->port);
+  tcp_hdr.th_flags = tcp_flag;
+  tcp_hdr.check = tcp_checksum(&tcp_hdr, sizeof(tcp_hdr), ip_src, ip_dest);
+  gettimeofday(&port->sendTime, NULL);
+  const int64_t retval = send_packet(sock, (uint8_t*)&tcp_hdr, sizeof(tcp_hdr), 0, (struct sockaddr*)&dest);
+  if (retval == -1) {
+    perror("send_packet/retval");
+    return 1;
+  }
+  return 0;
+}
+
+int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src) {
+  return tcp_send_probe(us, port, ip_dest, ip_src, TH_SYN);
+}
+
+int32_t tcp_ack_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src) {
+  return tcp_send_probe(us, port, ip_dest, ip_src, TH_ACK);
+}
+
+int32_t tcp_fin_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src) {
+  return tcp_send_probe(us, port, ip_dest, ip_src, TH_FIN);
+}
+
+int32_t tcp_xmas_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src) {
+  return tcp_send_probe(us, port, ip_dest, ip_src, TH_FIN | TH_PUSH | TH_URG);
+}
+
+int32_t tcp_null_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src) {
+  return tcp_send_probe(us, port, ip_dest, ip_src, 0);
+}
+
 uint16_t checksum(uint16_t* buffer, int size) {
   uint64_t cksum = 0;
   while (size > 1) {

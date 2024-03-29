@@ -12,8 +12,20 @@ add_custom_target(
         COMMAND if [ "${CMAKE_BUILD_TYPE}" = "debug" ]\; then make -C ${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata debug\; else make -C ${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata\; fi
 )
 
-aux_source_directory(src SRC)
-add_executable(ft_nmap ${SRC})
+add_executable(ft_nmap
+        src/ft_nmap.c
+        src/options.c
+        src/packet.c
+        src/parser.c
+        src/scan_types.c
+        src/t_host.c
+        src/tcp_scan.c
+        src/timing.c
+        src/ultra_scan.c
+        src/utils.c
+        src/worker.c
+        src/analysis.c
+)
 
 target_link_libraries(ft_nmap -lpcap -lpthread -lm -L${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata -ldata)
 add_dependencies(ft_nmap libdata)

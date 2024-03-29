@@ -9,19 +9,19 @@
 #include <argp.h>
 #include <arpa/inet.h>
 #include <error.h>
-#include <ifaddrs.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
 #include <pthread.h>
 #include <signal.h>
-//include poll header
+// include poll header
+#include <math.h>
 #include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,7 +31,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <math.h>
 // ----------------
 
 // library headers
@@ -135,9 +134,15 @@ uint64_t recv_packet(int sck, uint8_t* packet, uint64_t size_packet, int32_t fla
 uint64_t send_packet(int sck, const uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
 // TCP Function
+
 uint16_t checksum(uint16_t* buffer, int size);
 
 uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr, struct in_addr dest_addr);
+
+void tcp_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
+
+int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src,
+                       uint16_t tcp_flag);
 
 // TCP SYN  Function
 
@@ -145,6 +150,31 @@ int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_add
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
-//Utils
+// TCP ACK Function
+
+int32_t tcp_ack_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
+
+NMAP_PortStatus tcp_ack_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+
+// TCP NULL Function
+
+int32_t tcp_null_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
+
+NMAP_PortStatus tcp_null_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+
+// TCP FIN Function
+
+int32_t tcp_fin_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
+
+NMAP_PortStatus tcp_fin_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+
+// TCP XMAS Function
+
+int32_t tcp_xmas_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
+
+NMAP_PortStatus tcp_xmas_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+
+
+// Utils
 char* port_status_to_string(NMAP_PortStatus status);
 #endif
