@@ -43,6 +43,7 @@ typedef struct {
   double minTimeout;
   uint64_t maxRetries;
   struct timeval now;
+  uint64_t packet_recv;
 } NMAP_UltraScan;
 
 const char* inet_ntop_ez(const struct sockaddr_storage* ss, size_t sslen);
