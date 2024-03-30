@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(ft_nmap C)
 
 set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_COMPILER gcc)
+#set(CMAKE_C_COMPILER gcc)
 
 add_compile_options(-Wall -Werror -Wextra -gdwarf-3 -I${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata/inc)
 include_directories(./inc)
