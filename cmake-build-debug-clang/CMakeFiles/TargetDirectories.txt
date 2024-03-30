@@ -1,4 +1,0 @@
-/home/louis/ft_nmap/cmake-build-debug-clang/CMakeFiles/libdata.dir
-/home/louis/ft_nmap/cmake-build-debug-clang/CMakeFiles/ft_nmap.dir
-/home/louis/ft_nmap/cmake-build-debug-clang/CMakeFiles/edit_cache.dir
-/home/louis/ft_nmap/cmake-build-debug-clang/CMakeFiles/rebuild_cache.dir
