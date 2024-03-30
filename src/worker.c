@@ -9,8 +9,26 @@ static void* NMAP_workerMain(void* arg) {
   Array* result = array(sizeof(NMAP_PortStatus), nPorts, nPorts, NULL, NULL);
   if (result == NULL)
     return NULL;
-  if (options->scan & NMAP_SCAN_SYN)
+  if (options->scan & NMAP_SCAN_NONE) {
+    printf("none scan\n");
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_NONE);
+  }
+  if (options->scan & NMAP_SCAN_SYN) {
+    printf("syn scan\n");
     ultra_scan(options->ips, options->ports, NMAP_SCAN_SYN);
+  }
+  if (options->scan & NMAP_SCAN_ACK) {
+    printf("ack scan\n");
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_ACK);
+  }
+  if (options->scan & NMAP_SCAN_FIN) {
+    printf("fin scan\n");
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_FIN);
+  }
+  if (options->scan & NMAP_SCAN_XMAS) {
+    printf("xmas scan\n");
+    ultra_scan(options->ips, options->ports, NMAP_SCAN_XMAS);
+  }
   return result;
 }
 
