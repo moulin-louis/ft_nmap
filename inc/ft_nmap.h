@@ -19,7 +19,8 @@
 #include <string.h>
 #include <unistd.h>
 // ----------------
-
+#define ARRAY_IMPL
+#define ARRAY_USE_IMPL
 // library headers
 #include <array.h>
 
@@ -33,12 +34,13 @@
 typedef uint32_t NMAP_ScanType;
 typedef enum e_nmap_port_status NMAP_PortStatus;
 typedef struct s_nmap_options NMAP_Options;
-typedef struct s_nmap_dst_options NMAP_DstOptions;
+//typedef struct s_nmap_dst_options NMAP_DstOptions;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
-typedef enum e_nmap_option_key NMAP_OptionKey;
+//typedef enum e_nmap_option_key NMAP_OptionKey;
 
-#define NMAP_SCAN_NONE 0b000000
+
+#define NMAP_SCAN_NONE 0b000000 //DIFFERENT THAT SCAN_NULL x)
 #define NMAP_SCAN_SYN 0b000001
 #define NMAP_SCAN_NULL 0b000010
 #define NMAP_SCAN_FIN 0b000100
@@ -112,7 +114,7 @@ int NMAP_spawnWorkers(const NMAP_Options* options);
 
 
 // Engine function
-int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scanType);
+int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType scanType, Array* thread_result);
 
 // Packet I/O
 

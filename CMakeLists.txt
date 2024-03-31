@@ -20,7 +20,6 @@ add_executable(ft_nmap
         src/scan_types.c
         src/t_host.c
         src/tcp_scan.c
-        src/timing.c
         src/ultra_scan.c
         src/utils.c
         src/worker.c

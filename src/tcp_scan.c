@@ -34,6 +34,7 @@ int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip
   const int32_t sock = us->sock;
   tcp_craft_payload(&tcp_hdr, port->port);
   tcp_hdr.th_flags = tcp_flag;
+  printf("fin = %d, urg = %d, psh = %d\n", tcp_hdr.fin, tcp_hdr.urg, tcp_hdr.psh);
   tcp_hdr.check = tcp_checksum(&tcp_hdr, sizeof(tcp_hdr), ip_src, ip_dest);
   gettimeofday(&port->sendTime, NULL);
   const int64_t retval = send_packet(sock, (uint8_t*)&tcp_hdr, sizeof(tcp_hdr), 0, (struct sockaddr*)&dest);
