@@ -126,14 +126,18 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
         if (errno == ERANGE || end < begin || end > UINT16_MAX || (*endptr && *endptr != ','))
           argp_error(state, "Invalid argument for --ports: '%s'", arg);
         for (uint16_t port = begin; port <= end; ++port)
-          if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
+          if (array_any(input->ports, &port))
+            duplicatePort = true;
+          else if (array_pushBack(input->ports, &port, 1))
             return NMAP_FAILURE;
       }
-      else if (*endptr) {
-        if (*endptr != ',')
+      else {
+        if (*endptr && *endptr != ',')
           argp_error(state, "Invalid argument for --ports: '%s'", arg);
         const uint16_t port = begin;
-        if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
+        if (array_any(input->ports, &port))
+          duplicatePort = true;
+        else if (array_pushBack(input->ports, &port, 1))
           return NMAP_FAILURE;
       }
       cursor = endptr + !!*endptr;
@@ -156,7 +160,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
             stderr);
     duplicateIp = duplicatePort = false;
     if (array_empty(input->ports)) {
-      if (array_resize(input->ports, UINT16_MAX + 1))
+      if (array_resize(input->ports, 1025))
         return NMAP_FAILURE;
       array_forEach(input->ports, ArrayFn_setUint16ToIndex, NULL);
     }
