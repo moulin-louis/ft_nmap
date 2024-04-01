@@ -5,8 +5,6 @@
 #ifndef ULTRA_SCAN_H
 #define ULTRA_SCAN_H
 
-#include "ft_nmap.h"
-
 /* Timeval subtraction in microseconds */
 #define TIMEVAL_SUBTRACT(a, b) (((a).tv_sec - (b).tv_sec) * 1000000 + (a).tv_usec - (b).tv_usec)
 #define TIMEVAL_TO_MICROSC(a) ((a).tv_sec * 1000000 + (a).tv_usec)
@@ -43,6 +41,8 @@ typedef struct {
   struct timeval now;
   uint64_t packet_recv;
   uint64_t packet_sent;
+  uint64_t packet_retransmit;
+  uint64_t port_timeout;
 } NMAP_UltraScan;
 
 #endif // ULTRA_SCAN_H

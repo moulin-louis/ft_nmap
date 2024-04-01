@@ -67,19 +67,6 @@ static void* NMAP_workerMain(void* arg) {
     ultra_scan(options->ips, options->ports, NMAP_SCAN_FIN, thread_result);
   if (options->scan & NMAP_SCAN_XMAS)
     ultra_scan(options->ips, options->ports, NMAP_SCAN_XMAS, thread_result);
-  //  for (uint64_t i = 0; i < array_size(thread_result); i++) {
-  //    Array* arr = *(Array**)array_get(thread_result, i);
-  //    for (uint64_t j = 0; j < array_size(arr); ++j) {
-  //      t_host* host = array_get(arr, j);
-  //      for (uint64_t x = 0; x < array_size(host->ports); ++x) {
-  //        t_port* port = array_get(host->ports, x);
-  //        if (port->result == NMAP_OPEN) {
-  //          printf("port %u is %s\n", port->port, port_status_to_string(port->result));
-  //        }
-
-  //      }
-  //    }
-  //  }
   return merge_result(thread_result);
 }
 

@@ -40,7 +40,7 @@ static void us_updateRTTVAR(NMAP_UltraScan* us, const t_port* port) {
 static void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
   us_updateSRTT(us, port);
   us_updateRTTVAR(us, port);
-  us->timeout = us->srtt + us->rttvar * 4;
+  us->timeout = us->srtt + us->rttvar * 5;
   if (us->timeout < us->minTimeout)
     us->timeout = us->minTimeout;
   else if (us->timeout > us->maxTimeout)
@@ -143,7 +143,7 @@ static int64_t init_sniffer(NMAP_UltraScan* us) {
     fprintf(stderr, "Couldnt apply filter %s\n", pcap_geterr(us->handle));
     return 1;
   }
-  //  printf("filter = [%s]\n", pcap_filter);
+  // printf("filter = [%s]\n", pcap_filter);
   free(fp.bf_insns);
   return 0;
 }
@@ -236,7 +236,7 @@ static int64_t pcap_poll(pcap_t* p, const int64_t to_usec) {
 
   struct pollfd fds = {.fd = fd, .events = POLLIN, .revents = 0};
   errno = 0;
-  return poll(&fds, 1, (int32_t)(to_usec / 1000)); // we convert to milliseconds
+  return poll(&fds, 1, to_usec / 1000); // we convert to milliseconds
 }
 
 /**
@@ -391,11 +391,11 @@ static void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
       if (port->probeStatus == PROBE_SENT) {
         if (TIMEVAL_SUBTRACT(us->now, port->sendTime) > us->timeout) {
           if (port->nprobes_sent < us->maxRetries) {
-            //            printf("port %u: retrying\n", port->port);
+            us->packet_retransmit += 1;
             port->probeStatus = PROBE_PENDING;
           }
           else {
-            //            printf("port %u: timeout\n", port->port);
+            us->port_timeout += 1;
             port->result = NMAP_FILTERED;
             port->probeStatus = PROBE_TIMEOUT;
           }
@@ -431,6 +431,7 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
     printf("init sniffer failed\n");
     return 1;
   }
+  // printf("timeout = %Lf/%Lf micros/ms\n", us.timeout, us.timeout / 1000);
   while (us_allHostDone(&us) == false) {
     doAnyOustandingRetransmit(&us);
     if (doAnyNewProbe(&us)) {
@@ -445,8 +446,10 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
       }
     }
   }
-  printf("%ld packet sent\n", us.packet_sent);
-  printf("%ld packet recv\n", us.packet_recv);
+  // printf("%ld packet sent\n", us.packet_sent);
+  // printf("%ld packet recv\n", us.packet_recv);
+  // printf("%ld packet retransmit\n", us.packet_retransmit);
+  // printf("%ld port timeout\n", us.port_timeout);
   pcap_close(us.handle);
   close(us.sock);
   array_pushBack(thread_result, &us.hosts, 1);
