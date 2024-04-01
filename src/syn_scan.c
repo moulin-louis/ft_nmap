@@ -55,5 +55,5 @@ NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payl
       }
     }
   }
-  return UNKOWN;
+  return UNKNOWN;
 }

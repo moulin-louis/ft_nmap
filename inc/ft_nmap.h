@@ -9,20 +9,19 @@
 #include <argp.h>
 #include <arpa/inet.h>
 #include <error.h>
-#include <ifaddrs.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
+#include <math.h>
 #include <netdb.h>
 #include <netinet/ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
+#include <poll.h>
 #include <pthread.h>
 #include <signal.h>
-//include poll header
-#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -31,7 +30,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <math.h>
 // ----------------
 
 // library headers
@@ -70,7 +68,7 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
-  UNKOWN = 0, // == 0
+  UNKNOWN = 0, // == 0
   OPEN = 1 << 1, // == 2
   CLOSE = 1 << 2, // == 4
   FILTERED = 1 << 3, // == 8
@@ -145,6 +143,11 @@ int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_add
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
-//Utils
+// Utils
 char* port_status_to_string(NMAP_PortStatus status);
+
+// UDP
+NMAP_PortStatus udp_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+uint32_t udp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dst, struct in_addr ip_src);
+
 #endif
