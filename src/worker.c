@@ -1,17 +1,9 @@
 #include <ft_nmap.h>
 
-static bool ArrayFn_hostExist(const Array* arr, size_t i, const void* value, void* param) {
-  (void)arr, (void)i, (void)value, (void)param;
-  return true;
-}
-
 static bool ArrayFn_hostFind(const Array* arr, size_t i, const void* value, void* param) {
   (void)arr, (void)i;
-  const t_host* host = value;
-  const t_host* host_find = param;
-  return host->ip.s_addr == host_find->ip.s_addr;
+  return ((const t_host*)value)->ip.s_addr == ((const t_host*)param)->ip.s_addr;
 }
-
 
 /**
  * merge the result of all scan for an host
@@ -31,9 +23,9 @@ Array* merge_result(Array* thread_result) {
     Array* tmp_result = *(Array**)array_get(thread_result, i);
     for (uint64_t j = 0; j < array_size(tmp_result); ++j) {
       t_host* host_tmp = array_get(tmp_result, j);
-      if (array_anyIf(result, ArrayFn_hostExist, host_tmp) == false) {
+      if (array_anyIf(result, ArrayFn_hostFind, host_tmp) == false) {
         // Its the first time we see this host_tmp so we simply push it
-        array_pushBack(tmp_result, host_tmp, 1);
+        array_pushBack(result, host_tmp, 1);
         continue;
       }
       // We already have a result for this host_tmp so we need to merge both result
@@ -43,10 +35,10 @@ Array* merge_result(Array* thread_result) {
       for (uint64_t x = 0; x < array_size(host_tmp->ports); ++x) {
         t_port* port_tmp = array_get(host_tmp->ports, x);
         t_port* port_result = array_get(host_result->ports, x);
-        if (port_result->result == OPEN)
+        if (port_result->result == NMAP_OPEN)
           continue;
-        if (port_tmp->result == CLOSE)
-          port_result->result = CLOSE;
+        if (port_tmp->result == NMAP_CLOSE)
+          port_result->result = NMAP_CLOSE;
         port_result->result = port_tmp->port;
       }
     }
@@ -72,6 +64,7 @@ static void* NMAP_workerMain(void* arg) {
   if (options->scan & NMAP_SCAN_XMAS)
     ultra_scan(options->ips, options->ports, NMAP_SCAN_XMAS, thread_result);
   // merge result of all scan
+  printf("merging result\t");
   return merge_result(thread_result);
 }
 

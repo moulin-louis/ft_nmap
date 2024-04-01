@@ -8,13 +8,13 @@
 // standard headers
 #include <argp.h>
 #include <ifaddrs.h>
+#include <math.h>
 #include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
-#include <pthread.h>
-#include <math.h>
 #include <poll.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -34,13 +34,13 @@
 typedef uint32_t NMAP_ScanType;
 typedef enum e_nmap_port_status NMAP_PortStatus;
 typedef struct s_nmap_options NMAP_Options;
-//typedef struct s_nmap_dst_options NMAP_DstOptions;
+// typedef struct s_nmap_dst_options NMAP_DstOptions;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
-//typedef enum e_nmap_option_key NMAP_OptionKey;
+// typedef enum e_nmap_option_key NMAP_OptionKey;
 
 
-#define NMAP_SCAN_NONE 0b000000 //DIFFERENT THAT SCAN_NULL x)
+#define NMAP_SCAN_NONE 0b000000 // DIFFERENT THAT SCAN_NULL x)
 #define NMAP_SCAN_SYN 0b000001
 #define NMAP_SCAN_NULL 0b000010
 #define NMAP_SCAN_FIN 0b000100
@@ -58,11 +58,11 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
-  UNKOWN = 0, // == 0
-  OPEN = 1 << 1, // == 2
-  CLOSE = 1 << 2, // == 4
-  FILTERED = 1 << 3, // == 8
-  UNFILTERED = 1 << 4, // == 16
+  NMAP_UNKOWN = 0, // == 0
+  NMAP_OPEN = 1 << 1, // == 2
+  NMAP_CLOSE = 1 << 2, // == 4
+  NMAP_FILTERED = 1 << 3, // == 8
+  NMAP_UNFILTERED = 1 << 4, // == 16
 };
 
 struct s_nmap_options {

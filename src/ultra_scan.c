@@ -38,9 +38,8 @@ void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
     us->timeout = us->maxTimeout;
 }
 
-static bool ArrayFn_hostHasPortLeft(unused const Array* arr, unused size_t i, const void* value, unused void* param) {
-  const t_host* const host = value;
-  return host_hasPortLeft(host);
+static bool ArrayFn_hasHostNotDone(unused const Array* arr, unused size_t i, const void* value, unused void* param) {
+  return ((const t_host*)value)->done;
 }
 
 /**
@@ -305,7 +304,7 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
   uint16_t src_port = 0;
   const struct in_addr ip_src = *(struct in_addr*)&iphdr->saddr;
   const void* payload = (void*)(packet + sizeof(struct ether_header) + sizeof(struct iphdr));
-  NMAP_PortStatus result = UNKOWN;
+  NMAP_PortStatus result = NMAP_UNKOWN;
   switch (us->scanType) {
   case NMAP_SCAN_SYN:
     result = tcp_syn_analysis(iphdr, payload);
@@ -323,7 +322,7 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
     result = tcp_xmas_analysis(iphdr, payload);
     break;
   }
-  if (result == UNKOWN)
+  if (result == NMAP_UNKOWN)
     return false;
   if (iphdr->protocol == IPPROTO_TCP) {
     const struct tcphdr* tcp_tmp = (struct tcphdr*)payload;
@@ -403,7 +402,7 @@ void doAnyOustandingRetransmit(const NMAP_UltraScan* us) {
           if (port->nprobes_sent < us->maxRetries)
             port->probeStatus = PROBE_PENDING;
           else {
-            port->result = FILTERED;
+            port->result = NMAP_FILTERED;
             port->probeStatus = PROBE_TIMEOUT;
           }
         }
@@ -448,11 +447,11 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
     return 1;
   }
   if (init_sniffer(&us)) {
-    printf("init siffer failed\n");
+    printf("init sniffer failed\n");
     return 1;
   }
   printf("timeout = %Lf ms\n", us.timeout / 1000);
-  while (array_anyIf(us.hosts, ArrayFn_hostHasPortLeft, NULL)) {
+  while (array_anyIf(us.hosts, ArrayFn_hasHostNotDone, NULL)) {
     doAnyOustandingRetransmit(&us);
     if (doAnyNewProbe(&us)) {
       array_destroy(us.hosts);

@@ -10,7 +10,7 @@ typedef struct {
   uint8_t pholder;
   uint8_t protocol;
   uint16_t tcp_len;
-} TCP_PseudoHeader;
+} __attribute__((packed)) TCP_PseudoHeader;
 
 void tcp_craft_payload(struct tcphdr* tcp_hdr, const uint16_t port) {
   tcp_hdr->source = htons(49152); // Source port, Likely unused port
@@ -27,6 +27,7 @@ int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip
                        uint16_t tcp_flag) {
   struct sockaddr_in dest = {0};
   struct tcphdr tcp_hdr = {0};
+  struct timeval tmpTime = {0};
 
   dest.sin_addr = ip_dest;
   dest.sin_port = htons(port->port);
@@ -36,7 +37,8 @@ int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip
   tcp_hdr.th_flags = tcp_flag;
   printf("fin = %d, urg = %d, psh = %d\n", tcp_hdr.fin, tcp_hdr.urg, tcp_hdr.psh);
   tcp_hdr.check = tcp_checksum(&tcp_hdr, sizeof(tcp_hdr), ip_src, ip_dest);
-  gettimeofday(&port->sendTime, NULL);
+  gettimeofday(&tmpTime, NULL);
+  memcpy(&port->sendTime, &tmpTime, sizeof(struct timeval)); // we use a tmp timeval to avoid alignment issue
   const int64_t retval = send_packet(sock, (uint8_t*)&tcp_hdr, sizeof(tcp_hdr), 0, (struct sockaddr*)&dest);
   if (retval == -1) {
     perror("send_packet/retval");

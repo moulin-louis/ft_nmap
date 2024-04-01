@@ -7,7 +7,7 @@
 
 #include "ft_nmap.h"
 
-typedef enum { PROBE_PENDING = 0, PROBE_SENT = 1 << 0, PROBE_RECV = 1 << 1, PROBE_TIMEOUT = 1 << 2 } ProbeStatus;
+typedef enum { PROBE_PENDING = 0, PROBE_SENT = 1 << 0, PROBE_RECV = 1 << 1, PROBE_TIMEOUT = 1 << 2 } NMAP_ProbeStatus;
 
 /**
  * @brief Structure storing all the info needed for a port.
@@ -17,17 +17,17 @@ typedef enum { PROBE_PENDING = 0, PROBE_SENT = 1 << 0, PROBE_RECV = 1 << 1, PROB
  * @param {struct timeval} sendTime - Time when the probe was sent.
  * @param {struct timeval} recvTime - Time when the probe was received.
  * @param {uint64_t} nprobes_sent - Number of probes sent.
- * @param {uint64_t} __padding - Padding to align the structure on a 64 bits boundary.
+ * @param {uint64_t} _padding - Padding to align the structure on a 64 bits boundary.
  */
 typedef struct s_port {
-  uint16_t port;
-  NMAP_PortStatus result;
-  ProbeStatus probeStatus;
-  struct timeval sendTime;
-  struct timeval recvTime;
-  uint64_t nprobes_sent;
-  uint64_t __padding;
-} t_port;
+  uint16_t port; // 2
+  NMAP_PortStatus result; // 6
+  NMAP_ProbeStatus probeStatus; // 10
+  struct timeval sendTime; // 28
+  struct timeval recvTime; // 42
+  uint32_t nprobes_sent; // 46
+  uint8_t _padding[18]; // 64
+} __attribute__((packed)) t_port;
 
 /**
  * @brief Structure to store all the information needed for ultra_scan engine.
@@ -35,13 +35,15 @@ typedef struct s_port {
  * @param {Array<t_port>} incompletePorts - Vector of ports to scan.
  * @param {uint16_t} idx_ports - Index of the next port to scan.
  * @param {bool} done - True if all the ports have been scanned.
+ * @param {uint8_t} _padding - Padding to align the struc on a 32 bits boundary.
  */
-typedef struct {
-  struct in_addr ip;
-  Array* ports;
-  uint16_t idx_ports;
-  bool done;
-} t_host;
+typedef struct s_host {
+  struct in_addr ip; // 4
+  Array* ports; // 12
+  uint16_t idx_ports; // 14
+  uint16_t done; // 16
+  uint8_t _padding[16]; // 32
+} __attribute__((packed)) t_host;
 
 bool host_hasPortPendingLeft(const t_host* host);
 bool host_hasPortLeft(const t_host* host);
