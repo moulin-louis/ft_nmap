@@ -112,16 +112,16 @@ uint32_t udp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr i
 
 NMAP_PortStatus udp_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {
   if (ip_hdr->protocol == IPPROTO_UDP)
-    return OPEN;
+    return NMAP_OPEN;
   if (ip_hdr->protocol == IPPROTO_ICMP) {
     const struct icmphdr* icmp_hdr = ip_payload;
     if (icmp_hdr->type == 3) {
       if (icmp_hdr->code == 3)
-        return CLOSE;
+        return NMAP_CLOSE;
       if (icmp_hdr->code == 1 || icmp_hdr->code == 2 || icmp_hdr->code == 9 || icmp_hdr->code == 10 ||
           icmp_hdr->code == 13)
-        return FILTERED;
+        return NMAP_FILTERED;
     }
   }
-  return UNKNOWN;
+  return NMAP_UNKNOWN;
 }
