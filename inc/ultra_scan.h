@@ -9,9 +9,7 @@
 
 /* Timeval subtraction in microseconds */
 #define TIMEVAL_SUBTRACT(a, b) (((a).tv_sec - (b).tv_sec) * 1000000 + (a).tv_usec - (b).tv_usec)
-#define TIMEVAL_BEFORE(a, b) (((a).tv_sec < (b).tv_sec) || ((a).tv_sec == (b).tv_sec && (a).tv_usec < (b).tv_usec))
 #define TIMEVAL_TO_MICROSC(a) ((a).tv_sec * 1000000 + (a).tv_usec)
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 /**
  * @brief Structure to store all the information needed for ultra_scan engine.

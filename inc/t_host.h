@@ -26,7 +26,7 @@ typedef struct s_port {
   struct timeval sendTime; // 28
   struct timeval recvTime; // 42
   uint32_t nprobes_sent; // 46
-  uint8_t _padding[18]; // 64
+  unused uint8_t _padding[18]; // 64
 } __attribute__((packed)) t_port;
 
 /**
@@ -42,7 +42,7 @@ typedef struct s_host {
   Array* ports; // 12
   uint16_t idx_ports; // 14
   uint16_t done; // 16
-  uint8_t _padding[16]; // 32
+  unused uint8_t _padding[16]; // 32
 } __attribute__((packed)) t_host;
 
 bool host_hasPortPendingLeft(const t_host* host);

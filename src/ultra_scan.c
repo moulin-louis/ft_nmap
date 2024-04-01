@@ -4,6 +4,15 @@
 
 #include "ft_nmap.h"
 
+static bool us_allHostDone(NMAP_UltraScan* us) {
+  for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
+    t_host* host = array_get(us->hosts, i);
+    if (host->done == false)
+      return false;
+  }
+  return true;
+}
+
 /**
  * @brief update the SRTT of the NMAP_UltraScan structure based on the probe received.
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan struc
@@ -38,20 +47,16 @@ void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
     us->timeout = us->maxTimeout;
 }
 
-static bool ArrayFn_hasHostNotDone(unused const Array* arr, unused size_t i, const void* value, unused void* param) {
-  return ((const t_host*)value)->done;
-}
-
 /**
  * @brief init NMAP_UltraScan structure to default value.
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure to initialize.
  */
 void us_default_init(NMAP_UltraScan* us) {
-  us->srtt = 0;
-  us->rttvar = 0;
-  us->timeout = 1'000'000;
-  us->maxTimeout = 10'000'000;
-  us->minTimeout = 100'000;
+  us->srtt = 0; // in micro seconds
+  us->rttvar = 0; // in micro seconds
+  us->timeout = 1'000'000; // in micro seconds (1s/1000ms)
+  us->maxTimeout = 10'000'000; // in micro seconds (10s/10.000ms)
+  us->minTimeout = 100'000; // in micro seconds (0.1s/100ms)
   us->maxRetries = 10;
 }
 
@@ -128,7 +133,6 @@ int64_t init_sniffer(NMAP_UltraScan* us) {
   strcat(pcap_filter, " and (icmp or (tcp and (");
   strcat(pcap_filter, dst_hosts);
   strcat(pcap_filter, ")))");
-  printf("filter = [%s]\n", pcap_filter);
   if (pcap_compile(us->handle, &fp, pcap_filter, 0, net) == -1) {
     pcap_close(us->handle);
     fprintf(stdout, "Cant parse filter %s\n", pcap_geterr(us->handle));
@@ -139,6 +143,7 @@ int64_t init_sniffer(NMAP_UltraScan* us) {
     fprintf(stderr, "Couldnt apply filter %s\n", pcap_geterr(us->handle));
     return 1;
   }
+//  printf("filter = [%s]\n", pcap_filter);
   free(fp.bf_insns);
   return 0;
 }
@@ -163,8 +168,8 @@ t_host* us_nextHost(NMAP_UltraScan* us) {
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
 int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
-  // printf("sending one probe\n");
   t_port* port = host_nextIncPort(host);
+//  printf("sending one probe\n");
   switch (us->scanType) {
   case NMAP_SCAN_SYN:
     if (tcp_syn_send_probe(us, port, host->ip, us->inter_ip))
@@ -183,7 +188,6 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
       return 1;
     break;
   case NMAP_SCAN_XMAS:
-    printf("sending one xmas probe\n");
     if (tcp_xmas_send_probe(us, port, host->ip, us->inter_ip))
       return 1;
     break;
@@ -192,7 +196,6 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
     fprintf(stderr, "got scan = %d\n", us->scanType);
     exit(4);
   }
-  printf("switching probe to sent\n");
   port->probeStatus = PROBE_SENT;
   port->nprobes_sent += 1;
   return 0;
@@ -204,9 +207,6 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
 int64_t doAnyNewProbe(NMAP_UltraScan* us) {
-  if (us->scanType == NMAP_SCAN_XMAS) {
-    printf("in doAnyNewProbe\n");
-  }
   t_host* host = us_nextHost(us);
   const t_host* unableToSend = NULL;
   while (host != NULL && host != unableToSend) {
@@ -235,7 +235,6 @@ int64_t pcap_poll(pcap_t* p, const int64_t to_usec) {
 
   struct pollfd fds = {.fd = fd, .events = POLLIN, .revents = 0};
   errno = 0;
-  // printf("calling poll with to = %ld ms\n", to_usec / 1000);
   return poll(&fds, 1, (int32_t)(to_usec / 1000)); // we convert to milliseconds
 }
 
@@ -267,7 +266,7 @@ int64_t read_reply_pcap(pcap_t* handle, const int64_t to_usec, const uint8_t** p
       break;
     if (pcap_status == 0 || *packet == NULL) {
       gettimeofday(&tv_end, NULL);
-      if (TIMEVAL_SUBTRACT(tv_end, tv_start) >= to_usec * 1000)
+      if (TIMEVAL_SUBTRACT(tv_end, tv_start) >= to_usec)
         timeout = 1;
     }
   }
@@ -301,8 +300,6 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
   if (iphdr == NULL || TIMEVAL_SUBTRACT(us->now, *stime) > us->timeout)
     return false;
   us->packet_recv += 1;
-  uint16_t src_port = 0;
-  const struct in_addr ip_src = *(struct in_addr*)&iphdr->saddr;
   const void* payload = (void*)(packet + sizeof(struct ether_header) + sizeof(struct iphdr));
   NMAP_PortStatus result = NMAP_UNKOWN;
   switch (us->scanType) {
@@ -322,8 +319,11 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
     result = tcp_xmas_analysis(iphdr, payload);
     break;
   }
-  if (result == NMAP_UNKOWN)
+  if (result == NMAP_UNKOWN) {
+    printf("unknown state\n");
     return false;
+  }
+  uint16_t src_port = 0;
   if (iphdr->protocol == IPPROTO_TCP) {
     const struct tcphdr* tcp_tmp = (struct tcphdr*)payload;
     src_port = ntohs(tcp_tmp->source);
@@ -343,9 +343,11 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
     }
   }
 
+  const struct in_addr ip_src = *(struct in_addr*)&iphdr->saddr;
+//  printf("recv packet from %s\n", inet_ntoa(ip_src));
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
     t_host* host = array_get(us->hosts, i);
-    if (host->ip.s_addr != ip_src.s_addr)
+    if (memcmp(&host->ip.s_addr, &ip_src, sizeof(ip_src)) != 0)
       continue;
     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
       t_port* port = array_get(host->ports, j);
@@ -357,10 +359,6 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
       us_updateTimeout(us, port);
       break;
     }
-    // switch the host to done with every port have timeout or recv.
-    if (host_hasPortLeft(host) == false)
-      host->done = true;
-    break;
   }
   return true;
 }
@@ -370,9 +368,6 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
  */
 void waitForResponses(NMAP_UltraScan* us) {
-  if (us->scanType == NMAP_SCAN_XMAS) {
-    printf("in waitForResponse\n");
-  }
   bool gotone = true;
   struct timeval stime = {0};
   gettimeofday(&stime, NULL);
@@ -386,41 +381,26 @@ void waitForResponses(NMAP_UltraScan* us) {
  * @brief - Handle timeout for sent probe and check the number of retries
  * @param us {NMAP_Ultrascan*} - UltraScan structure
  */
-void doAnyOustandingRetransmit(const NMAP_UltraScan* us) {
-  if (us->scanType == NMAP_SCAN_XMAS) {
-    printf("in retransmit\n");
-  }
-  struct timeval now;
-  gettimeofday(&now, NULL);
+void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
+  gettimeofday(&us->now, NULL);
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
     const t_host* host = array_get(us->hosts, i);
     for (uint64_t j = 0; j < array_size(host->ports); ++j) {
       t_port* port = array_get(host->ports, j);
       if (port->probeStatus == PROBE_SENT) {
-        // we convert timeout in ms cause TIMEVAL_SUBSTRACT return a result in ms
-        if (TIMEVAL_SUBTRACT(now, port->sendTime) > us->timeout / 1000) {
-          if (port->nprobes_sent < us->maxRetries)
+        if (TIMEVAL_SUBTRACT(us->now, port->sendTime) > us->timeout) {
+          if (port->nprobes_sent < us->maxRetries) {
+//            printf("port %u: retrying\n", port->port);
             port->probeStatus = PROBE_PENDING;
+          }
           else {
+//            printf("port %u: timeout\n", port->port);
             port->result = NMAP_FILTERED;
             port->probeStatus = PROBE_TIMEOUT;
           }
         }
       }
     }
-  }
-}
-
-/**
- * @brief Merge all the host thread_result into the thread_result array
- * @param us {NMAP_UltraScan*} - UltraScan structure
- * @param thread_result {Array<Array<t_host>>} - Actual thread_result of all the scan
- */
-void process_data(NMAP_UltraScan* us, Array* thread_result) {
-  for (uint64_t i = 0; i < array_size(us->hosts); i++) {
-    t_host* current_host = array_get(us->hosts, i);
-    printf("pushing %p to thread_result\n", current_host);
-    array_pushBack(thread_result, &current_host, 1);
   }
 }
 
@@ -450,16 +430,20 @@ int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType sca
     printf("init sniffer failed\n");
     return 1;
   }
-  printf("timeout = %Lf ms\n", us.timeout / 1000);
-  while (array_anyIf(us.hosts, ArrayFn_hasHostNotDone, NULL)) {
+  while (us_allHostDone(&us) == false) {
     doAnyOustandingRetransmit(&us);
     if (doAnyNewProbe(&us)) {
       array_destroy(us.hosts);
       return 1;
     }
     waitForResponses(&us);
+    for (uint64_t i = 0; i < array_size(us.hosts); ++i) {
+      t_host* host = array_get(us.hosts, i);
+      if (host_hasPortLeft(host) == false) {
+        host->done = true;
+      }
+    }
   }
-  printf("done\n");
   pcap_close(us.handle);
   close(us.sock);
   array_pushBack(thread_result, &us.hosts, 1);

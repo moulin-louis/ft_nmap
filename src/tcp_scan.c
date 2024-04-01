@@ -35,7 +35,7 @@ int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip
   const int32_t sock = us->sock;
   tcp_craft_payload(&tcp_hdr, port->port);
   tcp_hdr.th_flags = tcp_flag;
-  printf("fin = %d, urg = %d, psh = %d\n", tcp_hdr.fin, tcp_hdr.urg, tcp_hdr.psh);
+//  printf("fin = %d, urg = %d, psh = %d\n", tcp_hdr.fin, tcp_hdr.urg, tcp_hdr.psh);
   tcp_hdr.check = tcp_checksum(&tcp_hdr, sizeof(tcp_hdr), ip_src, ip_dest);
   gettimeofday(&tmpTime, NULL);
   memcpy(&port->sendTime, &tmpTime, sizeof(struct timeval)); // we use a tmp timeval to avoid alignment issue

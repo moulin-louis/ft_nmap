@@ -52,15 +52,15 @@ struct in_addr get_interface_ip(const char* ifname) {
 char* port_status_to_string(const NMAP_PortStatus status) {
   switch (status) {
   case NMAP_OPEN:
-    return "NMAP_OPEN";
+    return "open";
   case NMAP_CLOSE:
-    return "NMAP_CLOSE";
+    return "close";
   case NMAP_FILTERED:
-    return "NMAP_FILTERED";
+    return "filtered";
   case NMAP_UNFILTERED:
-    return "NMAP_UNFILTERED";
+    return "unfiltered";
   case NMAP_UNKOWN:
-    return "UNKNOW";
+    return "unknown";
   }
   return "REALY REALY WEIRD STUFF IS HAPENING RIGHT NOW IN PORT STATUS TO STRING";
 }

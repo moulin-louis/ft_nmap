@@ -9,6 +9,7 @@
 #include <argp.h>
 #include <ifaddrs.h>
 #include <math.h>
+#include <netdb.h>
 #include <netinet/ether.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -28,7 +29,6 @@
 #include "utils.h"
 // -------------
 
-
 #define NMAP_SUCCESS 0
 #define NMAP_FAILURE 1
 typedef uint32_t NMAP_ScanType;
@@ -38,7 +38,6 @@ typedef struct s_nmap_options NMAP_Options;
 typedef struct s_nmap_worker_options NMAP_WorkerOptions;
 typedef struct s_nmap_worker_data NMAP_WorkerData;
 // typedef enum e_nmap_option_key NMAP_OptionKey;
-
 
 #define NMAP_SCAN_NONE 0b000000 // DIFFERENT THAT SCAN_NULL x)
 #define NMAP_SCAN_SYN 0b000001
@@ -68,22 +67,14 @@ enum e_nmap_port_status {
 struct s_nmap_options {
   uint32_t scan;
   uint8_t speedup;
-
-  // Array<in_addr_t>
-  Array* ips;
-
-  // Array<uint16_t>
-  Array* ports;
+  Array* ips; // Array <in_addr_t>
+  Array* ports; // Array<uint16_t>
 };
 
 struct s_nmap_worker_options {
   uint32_t scan;
-
-  // Array<in_addr_t>
-  const Array* ips;
-
-  // Array<uint16_t>
-  Array* ports;
+  const Array* ips; // Array<in_addr_t>
+  Array* ports; // Array<uint16_t>
 };
 
 struct s_nmap_worker_data {
@@ -114,11 +105,9 @@ int NMAP_spawnWorkers(const NMAP_Options* options);
 
 
 // Engine function
-int64_t ultra_scan(const Array* ips, const Array* ports, const NMAP_ScanType scanType, Array* thread_result);
+int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scanType, Array* thread_result);
 
 // Packet I/O
-
-uint64_t recv_packet(int sck, uint8_t* packet, uint64_t size_packet, int32_t flag, struct sockaddr* sender);
 
 uint64_t send_packet(int sck, const uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
