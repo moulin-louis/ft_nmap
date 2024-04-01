@@ -12,7 +12,7 @@ static NMAP_PortStatus icmp_analysis(const struct icmphdr* icmp_hdr) {
       return NMAP_FILTERED;
     }
   }
-  return NMAP_UNKOWN;
+  return NMAP_UNKNOWN;
 }
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {
@@ -27,7 +27,7 @@ NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payl
   }
   else if (ip_hdr->protocol == IPPROTO_ICMP)
     return icmp_analysis(ip_payload);
-  return NMAP_UNKOWN;
+  return NMAP_UNKNOWN;
 }
 
 NMAP_PortStatus tcp_ack_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {
@@ -40,7 +40,7 @@ NMAP_PortStatus tcp_ack_analysis(const struct iphdr* ip_hdr, const void* ip_payl
   }
   else if (ip_hdr->protocol == IPPROTO_ICMP)
     return icmp_analysis(ip_payload);
-  return NMAP_UNKOWN;
+  return NMAP_UNKNOWN;
 }
 
 NMAP_PortStatus tcp_fnx_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {
@@ -51,7 +51,7 @@ NMAP_PortStatus tcp_fnx_analysis(const struct iphdr* ip_hdr, const void* ip_payl
   }
   else if (ip_hdr->protocol == IPPROTO_ICMP)
     return icmp_analysis(ip_payload);
-  return NMAP_UNKOWN;
+  return NMAP_UNKNOWN;
 }
 
 NMAP_PortStatus tcp_fin_analysis(const struct iphdr* ip_hdr, const void* ip_payload) {

@@ -33,7 +33,7 @@ struct in_addr get_interface_ip(const char* ifname) {
     exit(EXIT_FAILURE);
   }
 
-  // Walk through linked list, maintaining head pointer so we can free list later
+  // Walk through linked list
   for (const struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
     if (ifa->ifa_addr == NULL)
       continue;
@@ -59,7 +59,7 @@ char* port_status_to_string(const NMAP_PortStatus status) {
     return "filtered";
   case NMAP_UNFILTERED:
     return "unfiltered";
-  case NMAP_UNKOWN:
+  case NMAP_UNKNOWN:
     return "unknown";
   }
   return "REALY REALY WEIRD STUFF IS HAPENING RIGHT NOW IN PORT STATUS TO STRING";

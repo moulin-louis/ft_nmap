@@ -42,6 +42,7 @@ typedef struct {
   uint64_t maxRetries;
   struct timeval now;
   uint64_t packet_recv;
+  uint64_t packet_sent;
 } NMAP_UltraScan;
 
 #endif // ULTRA_SCAN_H
