@@ -1,0 +1,11 @@
+Var:
+  workspaceFolder: dirname(__FILE__)
+
+CompileFlags:
+  Add:
+    - "-std=gnu17"
+    - "-Wall"
+    - "-Werror"
+    - "-Wextra"
+    - "-Iinc"
+    - "-Ilib/libdata/inc"

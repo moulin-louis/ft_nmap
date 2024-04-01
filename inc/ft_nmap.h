@@ -7,20 +7,33 @@
 
 // standard headers
 #include <argp.h>
+#include <arpa/inet.h>
+#include <error.h>
+#include <fcntl.h>
 #include <ifaddrs.h>
 #include <math.h>
+#include <netdb.h>
 #include <netinet/ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
 #include <poll.h>
 #include <pthread.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
-// ----------------
-#define ARRAY_IMPL
-#define ARRAY_USE_IMPL
+#include <wchar.h>
+
 // library headers
 #include <array.h>
+// ---------------
 
 // local headers
 #include "utils.h"
@@ -52,11 +65,19 @@ enum e_nmap_option_key {
 };
 
 enum e_nmap_port_status {
+<<<<<<< HEAD
   NMAP_UNKNOWN = 0, // == 0
   NMAP_OPEN = 1 << 1, // == 2
   NMAP_CLOSE = 1 << 2, // == 4
   NMAP_FILTERED = 1 << 3, // == 8
   NMAP_UNFILTERED = 1 << 4, // == 16
+=======
+  UNKNOWN = 0, // == 0
+  OPEN = 1 << 1, // == 2
+  CLOSE = 1 << 2, // == 4
+  FILTERED = 1 << 3, // == 8
+  UNFILTERED = 1 << 4, // == 16
+>>>>>>> lsuardi
 };
 
 struct s_nmap_options {
@@ -112,6 +133,7 @@ int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_add
 
 NMAP_PortStatus tcp_syn_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
+<<<<<<< HEAD
 // TCP ACK Function
 
 int32_t tcp_ack_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);
@@ -137,6 +159,13 @@ int32_t tcp_xmas_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_ad
 NMAP_PortStatus tcp_xmas_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
 
 
+=======
+>>>>>>> lsuardi
 // Utils
 char* port_status_to_string(NMAP_PortStatus status);
+
+// UDP
+NMAP_PortStatus udp_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
+uint32_t udp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dst, struct in_addr ip_src);
+
 #endif
