@@ -111,17 +111,6 @@ int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scanType,
 
 uint64_t send_packet(int sck, const uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
-// TCP Function
-
-uint16_t checksum(uint16_t* buffer, int size);
-
-uint16_t tcp_checksum(const void* vdata, size_t length, struct in_addr src_addr, struct in_addr dest_addr);
-
-void tcp_craft_payload(struct tcphdr* tcp_hdr, uint16_t port);
-
-int32_t tcp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src,
-                       uint16_t tcp_flag);
-
 // TCP SYN  Function
 
 int32_t tcp_syn_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dest, struct in_addr ip_src);

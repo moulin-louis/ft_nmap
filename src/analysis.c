@@ -4,7 +4,7 @@
 
 #include "ft_nmap.h"
 
-NMAP_PortStatus icmp_analysis(const struct icmphdr* icmp_hdr) {
+static NMAP_PortStatus icmp_analysis(const struct icmphdr* icmp_hdr) {
   if (icmp_hdr->type == ICMP_DEST_UNREACH) {
     if (icmp_hdr->code == ICMP_HOST_UNREACH || icmp_hdr->code == ICMP_PROT_UNREACH ||
         icmp_hdr->code == ICMP_PORT_UNREACH || icmp_hdr->code == ICMP_NET_ANO || icmp_hdr->code == ICMP_HOST_ANO ||

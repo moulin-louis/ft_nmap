@@ -18,7 +18,7 @@ static bool us_allHostDone(NMAP_UltraScan* us) {
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan struc
  * @param port {const t_port*} - Probe recieved to update the SRTT
  */
-void us_updateSRTT(NMAP_UltraScan* us, const t_port* port) {
+static void us_updateSRTT(NMAP_UltraScan* us, const t_port* port) {
   us->srtt = us->srtt + (TIMEVAL_TO_MICROSC(port->recvTime) - TIMEVAL_TO_MICROSC(port->sendTime) - us->srtt) / 8;
 }
 
@@ -27,7 +27,7 @@ void us_updateSRTT(NMAP_UltraScan* us, const t_port* port) {
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan struc
  * @param port {const t_port*} - Probe recieved to update the RTTVAR
  */
-void us_updateRTTVAR(NMAP_UltraScan* us, const t_port* port) {
+static void us_updateRTTVAR(NMAP_UltraScan* us, const t_port* port) {
   us->rttvar = us->rttvar +
     (fabsl(TIMEVAL_TO_MICROSC(port->recvTime) - TIMEVAL_TO_MICROSC(port->sendTime) - us->srtt) - us->rttvar) / 4;
 }
@@ -37,7 +37,7 @@ void us_updateRTTVAR(NMAP_UltraScan* us, const t_port* port) {
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
  * @param port {const t_port*} - Probe received to update the timeout.
  */
-void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
+static void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
   us_updateSRTT(us, port);
   us_updateRTTVAR(us, port);
   us->timeout = us->srtt + us->rttvar * 4;
@@ -51,7 +51,7 @@ void us_updateTimeout(NMAP_UltraScan* us, const t_port* port) {
  * @brief init NMAP_UltraScan structure to default value.
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure to initialize.
  */
-void us_default_init(NMAP_UltraScan* us) {
+static void us_default_init(NMAP_UltraScan* us) {
   us->srtt = 0; // in micro seconds
   us->rttvar = 0; // in micro seconds
   us->timeout = 1'000'000; // in micro seconds (1s/1000ms)
@@ -85,7 +85,7 @@ static int ArrayFn_mapIpToHost(unused const Array* arr, unused size_t i, void* d
  * @param ports {Array<uint16_t>} - Vector of ports to scan.
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
-int64_t us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) {
+static int64_t us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) {
   us->hosts = array_cMap(ips, sizeof(t_host), NULL, ArrayFn_mapIpToHost, (void*)ports);
   if (us->hosts == NULL)
     return 1;
@@ -97,7 +97,7 @@ int64_t us_createHost(NMAP_UltraScan* us, const Array* ips, const Array* ports) 
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
-int64_t init_sniffer(NMAP_UltraScan* us) {
+static int64_t init_sniffer(NMAP_UltraScan* us) {
   const uint64_t nbrHosts = array_size(us->hosts);
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_if_t* devs;
@@ -153,7 +153,7 @@ int64_t init_sniffer(NMAP_UltraScan* us) {
  * @param us {NMAP_UltraScan*} UltraScan structure.
  * @return {t_host*} - Next host to scan.
  */
-t_host* us_nextHost(NMAP_UltraScan* us) {
+static t_host* us_nextHost(NMAP_UltraScan* us) {
   t_host* result = array_get(us->hosts, us->idxNextHosts);
   us->idxNextHosts++;
   if (us->idxNextHosts >= array_size(us->hosts))
@@ -167,7 +167,7 @@ t_host* us_nextHost(NMAP_UltraScan* us) {
  * @param host {t_host*} - Host to send the probe to.
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
-int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
+static int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
   t_port* port = host_nextIncPort(host);
 //  printf("sending one probe\n");
   switch (us->scanType) {
@@ -206,7 +206,7 @@ int64_t sendNextScanProbe(const NMAP_UltraScan* us, t_host* host) {
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
-int64_t doAnyNewProbe(NMAP_UltraScan* us) {
+static int64_t doAnyNewProbe(NMAP_UltraScan* us) {
   t_host* host = us_nextHost(us);
   const t_host* unableToSend = NULL;
   while (host != NULL && host != unableToSend) {
@@ -228,7 +228,7 @@ int64_t doAnyNewProbe(NMAP_UltraScan* us) {
  * @param to_usec {long} - timeout to wait for in microseconds.
  * @return {int64_t} - 0 if timeout, -1 on error, > 0 if fd is ready.
  */
-int64_t pcap_poll(pcap_t* p, const int64_t to_usec) {
+static int64_t pcap_poll(pcap_t* p, const int64_t to_usec) {
   int fd;
   if ((fd = pcap_get_selectable_fd(p)) == -1)
     return -1;
@@ -247,7 +247,7 @@ int64_t pcap_poll(pcap_t* p, const int64_t to_usec) {
  * @param rcvdtime  {struct timeval*} - time when the packet was received
  * @return {int64_t} - 0 if success, 1 otherwise.
  */
-int64_t read_reply_pcap(pcap_t* handle, const int64_t to_usec, const uint8_t** packet, struct pcap_pkthdr** head,
+static int64_t read_reply_pcap(pcap_t* handle, const int64_t to_usec, const uint8_t** packet, struct pcap_pkthdr** head,
                         struct timeval* rcvdtime) {
   bool timeout = false;
   struct timeval tv_start, tv_end;
@@ -283,7 +283,7 @@ int64_t read_reply_pcap(pcap_t* handle, const int64_t to_usec, const uint8_t** p
  * @param stime {struct timeval*} - start time.
  * @return {bool} - true if there is a result, false otherwise.
  */
-bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
+static bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
   struct timeval rcvdtime;
   struct pcap_pkthdr* head;
   const uint8_t* packet;
@@ -367,7 +367,7 @@ bool get_pcap_result(NMAP_UltraScan* us, const struct timeval* stime) {
  * @brief recv and process packet until there is no more packet to process or timeout.
  * @param us {NMAP_UltraScan*} - NMAP_UltraScan structure.
  */
-void waitForResponses(NMAP_UltraScan* us) {
+static void waitForResponses(NMAP_UltraScan* us) {
   bool gotone = true;
   struct timeval stime = {0};
   gettimeofday(&stime, NULL);
@@ -381,7 +381,7 @@ void waitForResponses(NMAP_UltraScan* us) {
  * @brief - Handle timeout for sent probe and check the number of retries
  * @param us {NMAP_Ultrascan*} - UltraScan structure
  */
-void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
+static void doAnyOustandingRetransmit(NMAP_UltraScan* us) {
   gettimeofday(&us->now, NULL);
   for (uint64_t i = 0; i < array_size(us->hosts); ++i) {
     const t_host* host = array_get(us->hosts, i);
