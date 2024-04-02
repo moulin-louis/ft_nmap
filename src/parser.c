@@ -27,12 +27,6 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
   char* cursor = arg;
   char* endptr;
   in_addr_t ip;
-  char* name = NULL;
-  size_t nameLength = 0;
-  FILE* const file = fopen(arg, "r");
-  ssize_t readRet;
-  uint32_t scan;
-  unsigned long speedup = strtoul(arg, (char**)&endptr, 0);
 
   switch (key) {
   case NMAP_KEY_IP:
@@ -54,8 +48,14 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_FILE:
+    char* name = NULL;
+    size_t nameLength = 0;
+    FILE* const file = fopen(arg, "r");
+
     if (!file)
       argp_failure(state, 1, errno, "Failed to open file '%s'", arg);
+
+    ssize_t readRet;
 
     while ((readRet = getline(&name, &nameLength, file)) != -1) {
       if (!readRet)
@@ -97,6 +97,8 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_SCAN:
+    uint32_t scan;
+
     while ((tok = strsep(&cursor, ","))) {
       scan = NMAP_getScanNumber(tok);
       if (cursor)
@@ -108,6 +110,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_SPEEDUP:
+    unsigned long speedup = strtoul(arg, (char**)&endptr, 0);
     if (errno == ERANGE || *endptr || speedup < 1 || speedup > 250)
       argp_error(state, "Invalid speedup value '%s' (should be an integer in the range [1, 250])", arg);
     input->speedup = speedup;
@@ -116,6 +119,8 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
   case NMAP_KEY_PORTS:
     if (!*arg)
       argp_error(state, "Invalid argument for --ports: ''");
+
+    const char* cursor = arg;
 
     while (*cursor) {
       unsigned long begin = strtoul(cursor, &endptr, 0);
@@ -126,18 +131,14 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
         if (errno == ERANGE || end < begin || end > UINT16_MAX || (*endptr && *endptr != ','))
           argp_error(state, "Invalid argument for --ports: '%s'", arg);
         for (uint16_t port = begin; port <= end; ++port)
-          if (array_any(input->ports, &port))
-            duplicatePort = true;
-          else if (array_pushBack(input->ports, &port, 1))
+          if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
             return NMAP_FAILURE;
       }
-      else {
-        if (*endptr && *endptr != ',')
+      else if (*endptr) {
+        if (*endptr != ',')
           argp_error(state, "Invalid argument for --ports: '%s'", arg);
         const uint16_t port = begin;
-        if (array_any(input->ports, &port))
-          duplicatePort = true;
-        else if (array_pushBack(input->ports, &port, 1))
+        if (!array_any(input->ports, &port) && array_pushBack(input->ports, &port, 1))
           return NMAP_FAILURE;
       }
       cursor = endptr + !!*endptr;
@@ -160,7 +161,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
             stderr);
     duplicateIp = duplicatePort = false;
     if (array_empty(input->ports)) {
-      if (array_resize(input->ports, 1025))
+      if (array_resize(input->ports, UINT16_MAX + 1))
         return NMAP_FAILURE;
       array_forEach(input->ports, ArrayFn_setUint16ToIndex, NULL);
     }

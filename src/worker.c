@@ -6,13 +6,12 @@ static bool ArrayFn_hostFind(const Array* arr, size_t i, const void* value, void
 }
 
 /**
- * merge the result of all scan for an host
+ * merge the result of all scan for an host at the end of a thread
  * @param thread_result {Array<Array<t_host>> - An array of array of host, each host contains an array of t_port with
  * their status
- * @param in_thread {bool} control if this functions is called inside a thread or not
  * @return {Array<t_host>} - return an array of unique t_host (thread_result can contains multiple time the same t_host)
  */
-static Array* merge_result(Array* thread_result, const bool in_thread) {
+static Array* merge_thread_result(Array* thread_result) {
   // result == Array<t_host>
   Array* result = array(sizeof(t_host), array_size(thread_result), 0, NULL, NULL);
   if (result == NULL) {
@@ -42,11 +41,22 @@ static Array* merge_result(Array* thread_result, const bool in_thread) {
           port_result->result = NMAP_CLOSE;
         port_result->result = port_tmp->result;
       }
-      if (in_thread)
-        array_destroy(host_tmp->ports);
+      array_destroy(host_tmp->ports);
     }
   }
   return result;
+}
+
+/**
+ * @brief -
+ * @param all_result {Array<Array<t_host>>} - An array of the result of  all the thread
+ * @return {Array<t_host>} - An array with the result of all analyzed port for all host
+ */
+Array* merge_final_result(Array* all_result) {
+  (void)all_result;
+  Array* result = array(sizeof(t_host), 0, 0, NULL, NULL);
+  
+  return NULL;
 }
 
 static void* NMAP_workerMain(void* arg) {
@@ -65,7 +75,7 @@ static void* NMAP_workerMain(void* arg) {
     ultra_scan(options->ips, options->ports, NMAP_SCAN_FIN, thread_result);
   if (options->scan & NMAP_SCAN_XMAS)
     ultra_scan(options->ips, options->ports, NMAP_SCAN_XMAS, thread_result);
-  Array* result = merge_result(thread_result, true);
+  Array* result = merge_thread_result(thread_result);
   for (uint64_t i = 0; i < array_size(thread_result); ++i) {
     Array* arr = *(Array**)array_get(thread_result, i);
     array_destroy(arr);
@@ -191,12 +201,13 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     NMAP_WorkerData* data = array_get(workers, i);
     array_pushBack(all_result, &data->result, 1);
   }
-  Array* final_result = merge_result(all_result, false);
+  Array* final_result = merge_final_result(all_result);
   if (final_result == NULL)
     return NMAP_FAILURE;
+  printf("finale reuslt have size of %ld\n", array_size(final_result));
   for (uint64_t i = 0; i < array_size(final_result); ++i) {
     t_host* host = array_get(final_result, i);
-    printf("host(%s) has %ld port analyzed\n", inet_ntoa(host->ip), array_size(host->ports));
+    printf("host(%s), %ld port have been analyzed\n", inet_ntoa(host->ip), array_size(host->ports));
     for (uint64_t x = 0; x < array_size(host->ports); ++x) {
       const t_port* port = array_get(host->ports, x);
       if (port->result != NMAP_OPEN)
