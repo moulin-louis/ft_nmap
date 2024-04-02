@@ -9,9 +9,10 @@ static bool ArrayFn_hostFind(const Array* arr, size_t i, const void* value, void
  * merge the result of all scan for an host
  * @param thread_result {Array<Array<t_host>> - An array of array of host, each host contains an array of t_port with
  * their status
+ * @param in_thread {bool} control if this functions is called inside a thread or not
  * @return {Array<t_host>} - return an array of unique t_host (thread_result can contains multiple time the same t_host)
  */
-static Array* merge_result(Array* thread_result) {
+static Array* merge_result(Array* thread_result, const bool in_thread) {
   // result == Array<t_host>
   Array* result = array(sizeof(t_host), array_size(thread_result), 0, NULL, NULL);
   if (result == NULL) {
@@ -41,13 +42,10 @@ static Array* merge_result(Array* thread_result) {
           port_result->result = NMAP_CLOSE;
         port_result->result = port_tmp->result;
       }
+      if (in_thread)
+        array_destroy(host_tmp->ports);
     }
   }
-  for (uint64_t i = 0; i < array_size(thread_result); ++i) {
-    Array* arr = *(Array**)array_get(thread_result, i);
-    array_destroy(arr);
-  }
-  array_destroy(thread_result);
   return result;
 }
 
@@ -67,7 +65,13 @@ static void* NMAP_workerMain(void* arg) {
     ultra_scan(options->ips, options->ports, NMAP_SCAN_FIN, thread_result);
   if (options->scan & NMAP_SCAN_XMAS)
     ultra_scan(options->ips, options->ports, NMAP_SCAN_XMAS, thread_result);
-  return merge_result(thread_result);
+  Array* result = merge_result(thread_result, true);
+  for (uint64_t i = 0; i < array_size(thread_result); ++i) {
+    Array* arr = *(Array**)array_get(thread_result, i);
+    array_destroy(arr);
+  }
+  array_destroy(thread_result);
+  return result;
 }
 
 static void workerDataDestructor(Array* arr, void* data, size_t n) {
@@ -107,7 +111,7 @@ static int ArrayFn_setupWorkerOptions(unused Array* arr, unused size_t i, void* 
   worker->options.scan = setup->scan;
   worker->options.ips = setup->ips;
   worker->options.ports = array_sliced(setup->ports, from, to);
-  if (!worker->options.ports) {
+  if (worker->options.ports == NULL) {
     perror("ft_nmap");
     return 1;
   }
@@ -133,25 +137,10 @@ static int ArrayFn_joinWorkerThread(unused Array* arr, unused size_t i, void* va
       *threadError = true;
     perror("ft_nmap: failed to join a thread");
   }
-  else if (!worker->result) {
+  else if (worker->result == NULL) {
     if (threadError)
       *threadError = true;
     fputs("ft_nmap: an error occured in a worker thread\n", stderr);
-  }
-  else {
-    Array* result = worker->result;
-    for (uint64_t j = 0; j < array_size(result); ++j) {
-      t_host* host = array_get(result, j);
-      printf("host(%s) has %ld port analyzed\n", inet_ntoa(host->ip), array_size(host->ports));
-      for (uint64_t x = 0; x < array_size(host->ports); ++x) {
-        t_port* port = array_get(host->ports, x);
-        if (port->result != NMAP_OPEN)
-          continue;
-        struct servent* serv = getservbyport(htons(port->port), NULL);
-        if (serv)
-          printf("\t%u/%s %s %s\n", port->port, serv->s_proto, port_status_to_string(port->result), serv->s_name);
-      }
-    }
   }
   return 0;
 }
@@ -183,7 +172,7 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     .destructor = workerDataDestructor,
   };
   Array* const workers = array(sizeof(NMAP_WorkerData), 0, nThreads, NULL, &workersFactory);
-  if (!workers) {
+  if (workers == NULL) {
     perror("malloc");
     return NMAP_FAILURE;
   }
@@ -195,7 +184,30 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   bool threadError = false;
 
   array_forEach(workers, ArrayFn_joinWorkerThread, &threadError);
-
+  Array* all_result = array(sizeof(Array*), 0, 0, NULL, NULL);
+  if (all_result == NULL)
+    return NMAP_FAILURE;
+  for (uint64_t i = 0; i < array_size(workers); ++i) {
+    NMAP_WorkerData* data = array_get(workers, i);
+    array_pushBack(all_result, &data->result, 1);
+  }
+  Array* final_result = merge_result(all_result, false);
+  if (final_result == NULL)
+    return NMAP_FAILURE;
+  for (uint64_t i = 0; i < array_size(final_result); ++i) {
+    t_host* host = array_get(final_result, i);
+    printf("host(%s) has %ld port analyzed\n", inet_ntoa(host->ip), array_size(host->ports));
+    for (uint64_t x = 0; x < array_size(host->ports); ++x) {
+      const t_port* port = array_get(host->ports, x);
+      if (port->result != NMAP_OPEN)
+        continue;
+      const struct servent* serv = getservbyport(htons(port->port), NULL);
+      if (serv)
+        printf("\t%u/%s %s %s\n", port->port, serv->s_proto, port_status_to_string(port->result), serv->s_name);
+    }
+  }
+  array_destroy(final_result);
+  array_destroy(all_result);
   if (threadError)
     return NMAP_FAILURE;
   return NMAP_SUCCESS;

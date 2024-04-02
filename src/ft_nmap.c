@@ -5,15 +5,15 @@
 #include <ft_nmap.h>
 
 int main(int argc, char** argv) {
-  (void)argc, (void)argv;
+  if (getuid() != 0) {
+    printf("Please run this program with root privileges\n");
+    return NMAP_FAILURE;
+  }
   NMAP_Options* options = NMAP_parseArgs(argc, argv);
-
-  if (!options)
+  if (options == NULL)
     return NMAP_FAILURE;
-//  printf("GLOBAL OPTIONS\n");
-//   NMAP_printOptions(options);
-//  printf("--------------\n");
-  if (NMAP_spawnWorkers(options) == NMAP_FAILURE)
-    return NMAP_FAILURE;
-  return NMAP_SUCCESS;
+  //  printf("GLOBAL OPTIONS\n");
+  //   NMAP_printOptions(options);
+  //  printf("--------------\n");
+  return NMAP_spawnWorkers(options);
 }

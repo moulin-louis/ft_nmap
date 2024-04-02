@@ -20,13 +20,13 @@ typedef enum { PROBE_PENDING = 0, PROBE_SENT = 1 << 0, PROBE_RECV = 1 << 1, PROB
  * @param {uint64_t} _padding - Padding to align the structure on a 64 bits boundary.
  */
 typedef struct s_port {
-  uint16_t port; // 2
-  NMAP_PortStatus result; // 6
-  NMAP_ProbeStatus probeStatus; // 10
-  struct timeval sendTime; // 28
-  struct timeval recvTime; // 42
-  uint32_t nprobes_sent; // 46
-  unused uint8_t _padding[18]; // 64
+  uint16_t port;
+  NMAP_PortStatus result;
+  NMAP_ProbeStatus probeStatus;
+  struct timeval sendTime;
+  struct timeval recvTime;
+  uint32_t nprobes_sent;
+  unused uint8_t _padding[18];
 } __attribute__((packed)) t_port;
 
 /**
@@ -38,11 +38,11 @@ typedef struct s_port {
  * @param {uint8_t} _padding - Padding to align the struc on a 32 bits boundary.
  */
 typedef struct s_host {
-  struct in_addr ip; // 4
-  Array* ports; // 12
-  uint16_t idx_ports; // 14
-  uint16_t done; // 16
-  unused uint8_t _padding[16]; // 32
+  struct in_addr ip;
+  Array* ports;
+  uint16_t idx_ports;
+  uint16_t done;
+  unused uint8_t _padding[16];
 } __attribute__((packed)) t_host;
 
 bool host_hasPortPendingLeft(const t_host* host);

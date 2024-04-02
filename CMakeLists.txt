@@ -4,7 +4,7 @@ project(ft_nmap C)
 set(CMAKE_C_STANDARD 23)
 #set(CMAKE_C_COMPILER gcc)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wextra")
-add_compile_options( -gdwarf-3 -I${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata/inc)
+add_compile_options(-gdwarf-3 -I${CMAKE_CURRENT_SOURCE_DIR}/lib/libdata/inc)
 include_directories(./inc)
 
 add_custom_target(
@@ -15,7 +15,6 @@ add_custom_target(
 add_executable(ft_nmap
         src/ft_nmap.c
         src/options.c
-        src/packet.c
         src/parser.c
         src/scan_types.c
         src/t_host.c

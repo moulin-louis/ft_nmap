@@ -7,29 +7,17 @@
 
 // standard headers
 #include <argp.h>
-#include <arpa/inet.h>
-#include <error.h>
-#include <fcntl.h>
 #include <ifaddrs.h>
 #include <math.h>
-#include <netdb.h>
 #include <netinet/ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
 #include <poll.h>
 #include <pthread.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <unistd.h>
-#include <wchar.h>
 
 // library headers
 #include <array.h>
@@ -113,10 +101,27 @@ int NMAP_spawnWorkers(const NMAP_Options* options);
 
 
 // Engine function
+/**
+ * @brief ultra_scan engine, based on nmap one
+ * @param ips {Array<in_addr>} - Vector of targets to scan.
+ * @param ports {Array<uint16_t>} - Vector of ports to scan.
+ * @param scanType {NMAP_ScanType} - Type of scan to perform.
+ * @param thread_result {Array<Array<t_host>} - Actual result of all the scan
+ * @return {int64_t} - 0 if success, 1 otherwise.
+ */
 int64_t ultra_scan(const Array* ips, const Array* ports, NMAP_ScanType scanType, Array* thread_result);
 
 // Packet I/O
 
+/**
+ * @brief send a packet to a `dest` using `sendto`
+ * @param sck {int} - socket file descriptor
+ * @param packet {uint8_t*} - packet to send
+ * @param size_packet {uint64_t} size in bytes of the packet
+ * @param flag {int32_t} - flag to use in sendto
+ * @param dest {struct sockaddr*} - destination of the packet
+ * @return {uint64_t} - return value of sendto
+ */
 uint64_t send_packet(int sck, const uint8_t* packet, uint64_t size_packet, int32_t flag, const struct sockaddr* dest);
 
 // TCP SYN  Function
@@ -155,11 +160,17 @@ char* port_status_to_string(NMAP_PortStatus status);
 
 // UDP
 NMAP_PortStatus udp_analysis(const struct iphdr* ip_hdr, const void* ip_payload);
-uint32_t udp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dst, struct in_addr ip_src);
 
+uint32_t udp_send_probe(const NMAP_UltraScan* us, t_port* port, struct in_addr ip_dst, struct in_addr ip_src);
 
 // Checksum
 
+/**
+ * @brief - Checksum calculator for TCP/UDP packet
+ * @param buffer {uint16_t*} - buffer to calculate the checksum for
+ * @param size {int} - size in bytes of the buffer
+ * @return {uint16_t} - return the checksum
+ */
 uint16_t checksum(uint16_t* buffer, int size);
 
 #endif
