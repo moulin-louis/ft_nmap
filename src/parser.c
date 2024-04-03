@@ -29,10 +29,10 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
   in_addr_t ip;
   char* name = NULL;
   size_t nameLength = 0;
-  FILE* const file = fopen(arg, "r");
+  FILE* file;
   ssize_t readRet;
   uint32_t scan;
-  unsigned long speedup = strtoul(arg, (char**)&endptr, 0);
+  unsigned long speedup;
 
   switch (key) {
   case NMAP_KEY_IP:
@@ -54,7 +54,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_FILE:
-    if (!file)
+    if (!(file = fopen(arg, "r")))
       argp_failure(state, 1, errno, "Failed to open file '%s'", arg);
 
     while ((readRet = getline(&name, &nameLength, file)) != -1) {
@@ -108,6 +108,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_SPEEDUP:
+    speedup = strtoul(arg, (char**)&endptr, 0);
     if (errno == ERANGE || *endptr || speedup < 1 || speedup > 250)
       argp_error(state, "Invalid speedup value '%s' (should be an integer in the range [1, 250])", arg);
     input->speedup = speedup;
