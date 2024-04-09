@@ -55,6 +55,18 @@ static Array* merge_thread_result(Array* thread_result) {
 Array* merge_final_result(Array* all_result) {
   (void)all_result;
   Array* result = array(sizeof(t_host), 0, 0, NULL, NULL);
+  for (uint64_t i = 0; i < array_size(all_result); ++i) {
+    Array* tmp_arr = *(Array**)array_get(all_result, i);
+    for (uint64_t j = 0; j < array_size(tmp_arr); ++j) {
+      t_host* host_tmp = array_get(tmp_arr, j);
+      printf("host = %s\n", inet_ntoa(host_tmp->ip));
+      if (array_anyIf(result, ArrayFn_hostFind, host_tmp) == false) {
+        array_pushBack(result, &host_tmp, 1);
+        continue;
+      }
+      // do other stuff
+    }
+  }
   return result;
 }
 
@@ -193,7 +205,7 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   bool threadError = false;
 
   array_forEach(workers, ArrayFn_joinWorkerThread, &threadError);
-  //all_result == Array<Array*>
+  // all_result == Array<Array<t_host>>
   Array* all_result = array(sizeof(Array*), 0, 0, NULL, NULL);
   if (all_result == NULL)
     return NMAP_FAILURE;
