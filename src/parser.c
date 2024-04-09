@@ -54,18 +54,9 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_FILE:
-<<<<<<< HEAD
-    char* name = NULL;
-    size_t nameLength = 0;
-    FILE* const file = fopen(arg, "r");
 
-    if (!file)
-=======
     if (!(file = fopen(arg, "r")))
->>>>>>> main
       argp_failure(state, 1, errno, "Failed to open file '%s'", arg);
-
-    ssize_t readRet;
 
     while ((readRet = getline(&name, &nameLength, file)) != -1) {
       if (!readRet)
@@ -107,8 +98,6 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_SCAN:
-    uint32_t scan;
-
     while ((tok = strsep(&cursor, ","))) {
       scan = NMAP_getScanNumber(tok);
       if (cursor)
@@ -120,11 +109,7 @@ static error_t parseOpt(int key, char* arg, struct argp_state* state) {
     break;
 
   case NMAP_KEY_SPEEDUP:
-<<<<<<< HEAD
-    unsigned long speedup = strtoul(arg, (char**)&endptr, 0);
-=======
     speedup = strtoul(arg, (char**)&endptr, 0);
->>>>>>> main
     if (errno == ERANGE || *endptr || speedup < 1 || speedup > 250)
       argp_error(state, "Invalid speedup value '%s' (should be an integer in the range [1, 250])", arg);
     input->speedup = speedup;

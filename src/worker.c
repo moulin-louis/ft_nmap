@@ -55,8 +55,7 @@ static Array* merge_thread_result(Array* thread_result) {
 Array* merge_final_result(Array* all_result) {
   (void)all_result;
   Array* result = array(sizeof(t_host), 0, 0, NULL, NULL);
-  
-  return NULL;
+  return result;
 }
 
 static void* NMAP_workerMain(void* arg) {
@@ -194,11 +193,13 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
   bool threadError = false;
 
   array_forEach(workers, ArrayFn_joinWorkerThread, &threadError);
+  //all_result == Array<Array*>
   Array* all_result = array(sizeof(Array*), 0, 0, NULL, NULL);
   if (all_result == NULL)
     return NMAP_FAILURE;
   for (uint64_t i = 0; i < array_size(workers); ++i) {
-    NMAP_WorkerData* data = array_get(workers, i);
+    const NMAP_WorkerData* data = array_get(workers, i);
+    printf("thread answer size = %ld\n", array_size(data->result));
     array_pushBack(all_result, &data->result, 1);
   }
   Array* final_result = merge_final_result(all_result);
