@@ -2,8 +2,6 @@
 
 static bool ArrayFn_hostFind(const Array* arr, size_t i, const void* value, void* param) {
   (void)arr, (void)i;
-  printf("value s addr = %s\n", inet_ntoa(*(struct in_addr*)&((const t_host*)value)->ip.s_addr));
-  printf("param s addr = %s\n", inet_ntoa(*(struct in_addr*)&((const t_host*)param)->ip.s_addr));
   return ((const t_host*)value)->ip.s_addr == ((const t_host*)param)->ip.s_addr;
 }
 
@@ -61,7 +59,6 @@ Array* merge_final_result(Array* all_result) {
     Array* tmp_arr = *(Array**)array_get(all_result, i);
     for (uint64_t j = 0; j < array_size(tmp_arr); ++j) {
       t_host* host_tmp = array_get(tmp_arr, j);
-      printf("host = %s\n", inet_ntoa(host_tmp->ip));
       if (array_anyIf(result, ArrayFn_hostFind, host_tmp) == false) {
         array_pushBack(result, host_tmp, 1);
         continue;
@@ -214,13 +211,11 @@ int NMAP_spawnWorkers(const NMAP_Options* options) {
     return NMAP_FAILURE;
   for (uint64_t i = 0; i < array_size(workers); ++i) {
     const NMAP_WorkerData* data = array_get(workers, i);
-    printf("thread answer size = %ld\n", array_size(data->result));
     array_pushBack(all_result, &data->result, 1);
   }
   Array* final_result = merge_final_result(all_result);
   if (final_result == NULL)
     return NMAP_FAILURE;
-  printf("finale reuslt have size of %ld\n", array_size(final_result));
   for (uint64_t i = 0; i < array_size(final_result); ++i) {
     t_host* host = array_get(final_result, i);
     printf("host(%s), %ld port have been analyzed\n", inet_ntoa(host->ip), array_size(host->ports));
