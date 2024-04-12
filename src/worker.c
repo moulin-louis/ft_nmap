@@ -2,6 +2,8 @@
 
 static bool ArrayFn_hostFind(const Array* arr, size_t i, const void* value, void* param) {
   (void)arr, (void)i;
+  printf("value s addr = %s\n", inet_ntoa(*(struct in_addr*)&((const t_host*)value)->ip.s_addr));
+  printf("param s addr = %s\n", inet_ntoa(*(struct in_addr*)&((const t_host*)param)->ip.s_addr));
   return ((const t_host*)value)->ip.s_addr == ((const t_host*)param)->ip.s_addr;
 }
 
@@ -61,10 +63,11 @@ Array* merge_final_result(Array* all_result) {
       t_host* host_tmp = array_get(tmp_arr, j);
       printf("host = %s\n", inet_ntoa(host_tmp->ip));
       if (array_anyIf(result, ArrayFn_hostFind, host_tmp) == false) {
-        array_pushBack(result, &host_tmp, 1);
+        array_pushBack(result, host_tmp, 1);
         continue;
       }
-      // do other stuff
+      t_host* host_result = array_findIf(result, ArrayFn_hostFind, host_tmp);
+      array_pushBack(host_result->ports, array_data(host_tmp->ports), array_size(host_tmp->ports));
     }
   }
   return result;
