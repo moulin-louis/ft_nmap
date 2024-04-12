@@ -30,10 +30,10 @@ static Array* merge_thread_result(Array* thread_result) {
       }
       // We already have a result for this host_tmp so we need to merge both result
       // Find the actual instance of host in thread_result
-      t_host* host_result = array_findIf(result, ArrayFn_hostFind, host_tmp);
+      const t_host* host_result = array_findIf(result, ArrayFn_hostFind, host_tmp);
       // merge result for all ports
       for (uint64_t x = 0; x < array_size(host_tmp->ports); ++x) {
-        t_port* port_tmp = array_get(host_tmp->ports, x);
+        const t_port* port_tmp = array_get(host_tmp->ports, x);
         t_port* port_result = array_get(host_result->ports, x);
         if (port_result->result == NMAP_OPEN)
           continue;
@@ -48,7 +48,7 @@ static Array* merge_thread_result(Array* thread_result) {
 }
 
 /**
- * @brief -
+ * @brief - Merge the result of all thread together
  * @param all_result {Array<Array<t_host>>} - An array of the result of  all the thread
  * @return {Array<t_host>} - An array with the result of all analyzed port for all host
  */
@@ -63,7 +63,7 @@ Array* merge_final_result(Array* all_result) {
         array_pushBack(result, host_tmp, 1);
         continue;
       }
-      t_host* host_result = array_findIf(result, ArrayFn_hostFind, host_tmp);
+      const t_host* host_result = array_findIf(result, ArrayFn_hostFind, host_tmp);
       array_pushBack(host_result->ports, array_data(host_tmp->ports), array_size(host_tmp->ports));
     }
   }
